@@ -1,0 +1,65 @@
+import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Camera, CircleDot, Lightbulb, Monitor, FileText } from 'lucide-react';
+import { HardwareResourceManager } from '../admin/HardwareResourceManager';
+import { PPTTemplateManager } from '../admin/PPTTemplateManager';
+
+export function AdminCenter() {
+  const [activeTab, setActiveTab] = useState('cameras');
+
+  return (
+    <div className="flex-1 flex overflow-hidden">
+      <div className="w-full max-w-6xl mx-auto p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground">管理中心</h1>
+          <p className="text-muted-foreground mt-1">
+            维护硬件资源库与PPT母版
+          </p>
+        </div>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
+          <TabsList className="grid w-full max-w-2xl grid-cols-5">
+            <TabsTrigger value="cameras" className="gap-2">
+              <Camera className="h-4 w-4" />
+              相机
+            </TabsTrigger>
+            <TabsTrigger value="lenses" className="gap-2">
+              <CircleDot className="h-4 w-4" />
+              镜头
+            </TabsTrigger>
+            <TabsTrigger value="lights" className="gap-2">
+              <Lightbulb className="h-4 w-4" />
+              光源
+            </TabsTrigger>
+            <TabsTrigger value="controllers" className="gap-2">
+              <Monitor className="h-4 w-4" />
+              工控机
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="gap-2">
+              <FileText className="h-4 w-4" />
+              PPT母版
+            </TabsTrigger>
+          </TabsList>
+          
+          <div className="mt-6">
+            <TabsContent value="cameras">
+              <HardwareResourceManager type="cameras" />
+            </TabsContent>
+            <TabsContent value="lenses">
+              <HardwareResourceManager type="lenses" />
+            </TabsContent>
+            <TabsContent value="lights">
+              <HardwareResourceManager type="lights" />
+            </TabsContent>
+            <TabsContent value="controllers">
+              <HardwareResourceManager type="controllers" />
+            </TabsContent>
+            <TabsContent value="templates">
+              <PPTTemplateManager />
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
+    </div>
+  );
+}

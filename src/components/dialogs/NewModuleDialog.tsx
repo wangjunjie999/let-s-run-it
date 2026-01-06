@@ -1,0 +1,78 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useData } from '@/contexts/DataContext';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
+
+type ModuleType = Database['public']['Enums']['module_type'];
+
+export function NewModuleDialog({ open, onOpenChange, workstationId }: { open: boolean; onOpenChange: (open: boolean) => void; workstationId: string | null }) {
+  const { addModule, selectModule, layouts, getLayoutByWorkstation } = useData();
+  const [form, setForm] = useState({ name: '', type: 'defect' as ModuleType });
+  const [loading, setLoading] = useState(false);
+
+  const handleCreate = async () => {
+    if (!workstationId) return;
+    try {
+      setLoading(true);
+      
+      // Get workstation layout to inherit hardware
+      const layout = getLayoutByWorkstation(workstationId);
+      const selectedCameras = (layout as any)?.selected_cameras || [];
+      const selectedLenses = (layout as any)?.selected_lenses || [];
+      const selectedLights = (layout as any)?.selected_lights || [];
+      const selectedController = (layout as any)?.selected_controller;
+      
+      // Inherit hardware from workstation (take first item of each type)
+      const moduleData: any = {
+        workstation_id: workstationId, 
+        name: form.name, 
+        type: form.type, 
+        trigger_type: 'io', 
+        output_types: ['okng'], 
+        flowchart_saved: false, 
+        status: 'draft',
+        selected_camera: selectedCameras.length > 0 ? selectedCameras[0].id : null,
+        selected_lens: selectedLenses.length > 0 ? selectedLenses[0].id : null,
+        selected_light: selectedLights.length > 0 ? selectedLights[0].id : null,
+        selected_controller: selectedController ? selectedController.id : null,
+      };
+      
+      const mod = await addModule(moduleData);
+      selectModule(mod.id);
+      onOpenChange(false);
+      setForm({ name: '', type: 'defect' });
+    } catch (error) {
+      console.error('Failed to create module:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>新建功能模块</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2"><Label>模块名称</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="请输入模块名称" /></div>
+          <div className="space-y-2"><Label>模块类型</Label>
+            <Select value={form.type} onValueChange={v => setForm(p => ({ ...p, type: v as ModuleType }))}><SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="positioning">引导定位</SelectItem><SelectItem value="defect">缺陷检测</SelectItem><SelectItem value="ocr">OCR识别</SelectItem><SelectItem value="deeplearning">深度学习</SelectItem></SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>取消</Button>
+          <Button onClick={handleCreate} disabled={loading || !form.name}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            创建
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
