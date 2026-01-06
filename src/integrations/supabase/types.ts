@@ -112,11 +112,17 @@ export type Database = {
           camera_id: string | null
           controller_id: string | null
           created_at: string
+          deep_learning_config: Json | null
+          defect_config: Json | null
           description: string | null
           id: string
           lens_id: string | null
           light_id: string | null
+          measurement_config: Json | null
           name: string
+          ocr_config: Json | null
+          output_types: string[] | null
+          positioning_config: Json | null
           processing_time_limit: number | null
           roi_strategy: string | null
           rotation: number | null
@@ -126,6 +132,7 @@ export type Database = {
           selected_lens: string | null
           selected_light: string | null
           status: string | null
+          trigger_type: string | null
           type: string | null
           updated_at: string
           user_id: string
@@ -137,11 +144,17 @@ export type Database = {
           camera_id?: string | null
           controller_id?: string | null
           created_at?: string
+          deep_learning_config?: Json | null
+          defect_config?: Json | null
           description?: string | null
           id?: string
           lens_id?: string | null
           light_id?: string | null
+          measurement_config?: Json | null
           name: string
+          ocr_config?: Json | null
+          output_types?: string[] | null
+          positioning_config?: Json | null
           processing_time_limit?: number | null
           roi_strategy?: string | null
           rotation?: number | null
@@ -151,6 +164,7 @@ export type Database = {
           selected_lens?: string | null
           selected_light?: string | null
           status?: string | null
+          trigger_type?: string | null
           type?: string | null
           updated_at?: string
           user_id: string
@@ -162,11 +176,17 @@ export type Database = {
           camera_id?: string | null
           controller_id?: string | null
           created_at?: string
+          deep_learning_config?: Json | null
+          defect_config?: Json | null
           description?: string | null
           id?: string
           lens_id?: string | null
           light_id?: string | null
+          measurement_config?: Json | null
           name?: string
+          ocr_config?: Json | null
+          output_types?: string[] | null
+          positioning_config?: Json | null
           processing_time_limit?: number | null
           roi_strategy?: string | null
           rotation?: number | null
@@ -176,6 +196,7 @@ export type Database = {
           selected_lens?: string | null
           selected_light?: string | null
           status?: string | null
+          trigger_type?: string | null
           type?: string | null
           updated_at?: string
           user_id?: string
@@ -285,6 +306,9 @@ export type Database = {
       }
       mechanical_layouts: {
         Row: {
+          camera_count: number | null
+          camera_mounts: Json | null
+          conveyor_type: string | null
           created_at: string
           depth: number | null
           description: string | null
@@ -293,6 +317,8 @@ export type Database = {
           height: number | null
           id: string
           layout_type: string | null
+          machine_outline: Json | null
+          mechanisms: Json | null
           name: string
           side_view_image_url: string | null
           side_view_saved: boolean | null
@@ -304,6 +330,9 @@ export type Database = {
           workstation_id: string
         }
         Insert: {
+          camera_count?: number | null
+          camera_mounts?: Json | null
+          conveyor_type?: string | null
           created_at?: string
           depth?: number | null
           description?: string | null
@@ -312,6 +341,8 @@ export type Database = {
           height?: number | null
           id?: string
           layout_type?: string | null
+          machine_outline?: Json | null
+          mechanisms?: Json | null
           name: string
           side_view_image_url?: string | null
           side_view_saved?: boolean | null
@@ -323,6 +354,9 @@ export type Database = {
           workstation_id: string
         }
         Update: {
+          camera_count?: number | null
+          camera_mounts?: Json | null
+          conveyor_type?: string | null
           created_at?: string
           depth?: number | null
           description?: string | null
@@ -331,6 +365,8 @@ export type Database = {
           height?: number | null
           id?: string
           layout_type?: string | null
+          machine_outline?: Json | null
+          mechanisms?: Json | null
           name?: string
           side_view_image_url?: string | null
           side_view_saved?: boolean | null
@@ -358,9 +394,12 @@ export type Database = {
           customer: string | null
           date: string | null
           description: string | null
+          environment: string | null
           id: string
           name: string
+          notes: string | null
           product_process: string | null
+          quality_strategy: string | null
           responsible: string | null
           status: string | null
           template_id: string | null
@@ -373,9 +412,12 @@ export type Database = {
           customer?: string | null
           date?: string | null
           description?: string | null
+          environment?: string | null
           id?: string
           name: string
+          notes?: string | null
           product_process?: string | null
+          quality_strategy?: string | null
           responsible?: string | null
           status?: string | null
           template_id?: string | null
@@ -388,9 +430,12 @@ export type Database = {
           customer?: string | null
           date?: string | null
           description?: string | null
+          environment?: string | null
           id?: string
           name?: string
+          notes?: string | null
           product_process?: string | null
+          quality_strategy?: string | null
           responsible?: string | null
           status?: string | null
           template_id?: string | null
@@ -405,7 +450,9 @@ export type Database = {
           created_at: string
           cycle_time: number | null
           description: string | null
+          enclosed: boolean | null
           id: string
+          install_space: Json | null
           name: string
           product_dimensions: Json | null
           project_id: string
@@ -419,7 +466,9 @@ export type Database = {
           created_at?: string
           cycle_time?: number | null
           description?: string | null
+          enclosed?: boolean | null
           id?: string
+          install_space?: Json | null
           name: string
           product_dimensions?: Json | null
           project_id: string
@@ -433,7 +482,9 @@ export type Database = {
           created_at?: string
           cycle_time?: number | null
           description?: string | null
+          enclosed?: boolean | null
           id?: string
+          install_space?: Json | null
           name?: string
           product_dimensions?: Json | null
           project_id?: string

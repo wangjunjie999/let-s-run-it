@@ -132,6 +132,7 @@ const COLORS = {
   secondary: '64748B',
   accent: '10B981',
   warning: 'F59E0B',
+  destructive: 'EF4444',
   background: 'F8FAFC',
   dark: '1E293B',
   white: 'FFFFFF',

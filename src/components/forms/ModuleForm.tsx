@@ -19,8 +19,8 @@ import { ModuleFormState, getDefaultFormState } from './module/types';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 
-type ModuleType = Database['public']['Enums']['module_type'];
-type TriggerType = Database['public']['Enums']['trigger_type'];
+type ModuleType = 'positioning' | 'defect' | 'ocr' | 'deeplearning' | 'measurement';
+type TriggerType = 'io' | 'encoder' | 'software' | 'continuous';
 
 const moduleTypeLabels: Record<string, string> = {
   positioning: '引导定位',
@@ -37,7 +37,7 @@ export function ModuleForm() {
   const { lights } = useLights();
   const { controllers } = useControllers();
   
-  const module = modules.find(m => m.id === selectedModuleId);
+  const module = modules.find(m => m.id === selectedModuleId) as any;
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<ModuleFormState>(getDefaultFormState());
   
@@ -46,11 +46,11 @@ export function ModuleForm() {
 
   useEffect(() => {
     if (module) {
-      const defectCfg = module.defect_config as any;
-      const posCfg = module.positioning_config as any;
-      const ocrCfg = module.ocr_config as any;
-      const dlCfg = module.deep_learning_config as any;
-      const measureCfg = (module as any).measurement_config as any;
+      const defectCfg = module.defect_config;
+      const posCfg = module.positioning_config;
+      const ocrCfg = module.ocr_config;
+      const dlCfg = module.deep_learning_config;
+      const measureCfg = module.measurement_config;
       
       // Get common params and imaging params from any config (they should be the same across types)
       const cfg = defectCfg || posCfg || ocrCfg || dlCfg || measureCfg;

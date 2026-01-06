@@ -113,38 +113,32 @@ export function HardwareDetailView({ type, item, open, onOpenChange }: HardwareD
       // Query modules that use this hardware item
       const searchValue = `${item.brand} ${item.model}`;
       
-      // Build the query based on type - use simple select to avoid type errors
-      let query = supabase
+      // Build the query based on type
+      const fieldName = {
+        cameras: 'selected_camera',
+        lenses: 'selected_lens',
+        lights: 'selected_light',
+        controllers: 'selected_controller',
+      }[type];
+      
+      // Use direct fetch to avoid type instantiation issues
+      const { data: modules, error } = await supabase
         .from('function_modules')
-        .select('*');
-      
-      switch (type) {
-        case 'cameras':
-          query = query.eq('selected_camera' as any, searchValue);
-          break;
-        case 'lenses':
-          query = query.eq('selected_lens' as any, searchValue);
-          break;
-        case 'lights':
-          query = query.eq('selected_light' as any, searchValue);
-          break;
-        case 'controllers':
-          query = query.eq('selected_controller' as any, searchValue);
-          break;
-      }
-      
-      const { data: modules, error } = await query;
+        .select('id, name, workstation_id') as { data: any[] | null; error: any };
 
       if (error) throw error;
 
-      if (!modules || modules.length === 0) {
+      // Filter modules manually since eq on dynamic field causes type issues
+      const filteredModules = (modules || []).filter((m: any) => m[fieldName] === searchValue);
+
+      if (filteredModules.length === 0) {
         setUsageData([]);
         setLoading(false);
         return;
       }
 
       // Get workstation IDs
-      const workstationIds = [...new Set(modules.map((m) => m.workstation_id))];
+      const workstationIds = [...new Set(filteredModules.map((m: any) => m.workstation_id))] as string[];
       
       // Fetch workstations
       const { data: workstations, error: wsError } = await supabase
@@ -155,7 +149,7 @@ export function HardwareDetailView({ type, item, open, onOpenChange }: HardwareD
       if (wsError) throw wsError;
 
       // Get project IDs
-      const projectIds = [...new Set(workstations?.map((w) => w.project_id) || [])];
+      const projectIds = [...new Set(workstations?.map((w) => w.project_id) || [])] as string[];
       
       // Fetch projects
       const { data: projects, error: projError } = await supabase
@@ -166,7 +160,7 @@ export function HardwareDetailView({ type, item, open, onOpenChange }: HardwareD
       if (projError) throw projError;
 
       // Map data - use type assertion for extended fields
-      const usage: UsageInfo[] = modules.map((mod: any) => {
+      const usage: UsageInfo[] = filteredModules.map((mod: any) => {
         const ws = workstations?.find((w) => w.id === mod.workstation_id);
         const proj = projects?.find((p: any) => p.id === ws?.project_id) as any;
         return {

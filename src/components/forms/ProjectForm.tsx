@@ -18,7 +18,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
-type QualityStrategy = Database['public']['Enums']['quality_strategy'];
+type QualityStrategy = 'no_miss' | 'balanced' | 'allow_pass';
 
 const productProcessOptions = [
   '注塑成型',
@@ -84,25 +84,26 @@ const [formData, setFormData] = useState({
 
   useEffect(() => {
     if (project) {
+      const proj = project as any;
       setFormData({
-        code: project.code,
-        name: project.name,
-        customer: project.customer,
-        production_line: (project as any).production_line || '',
-        product_process: project.product_process || '',
-        date: project.date || '',
-        responsible: project.responsible || '',
-        sales_responsible: (project as any).sales_responsible || '',
-        vision_responsible: (project as any).vision_responsible || '',
-        template_id: project.template_id || '',
-        cycle_time_target: project.cycle_time_target?.toString() || '',
-        environment: project.environment || [],
-        quality_strategy: project.quality_strategy || '',
-        use_3d: (project as any).use_3d || false,
-        use_ai: (project as any).use_ai || false,
-        main_camera_brand: (project as any).main_camera_brand || '',
-        spec_version: project.spec_version || '',
-        notes: project.notes || '',
+        code: proj.code || '',
+        name: proj.name || '',
+        customer: proj.customer || '',
+        production_line: proj.production_line || '',
+        product_process: proj.product_process || '',
+        date: proj.date || '',
+        responsible: proj.responsible || '',
+        sales_responsible: proj.sales_responsible || '',
+        vision_responsible: proj.vision_responsible || '',
+        template_id: proj.template_id || '',
+        cycle_time_target: proj.cycle_time_target?.toString() || '',
+        environment: Array.isArray(proj.environment) ? proj.environment : [],
+        quality_strategy: proj.quality_strategy || '',
+        use_3d: proj.use_3d || false,
+        use_ai: proj.use_ai || false,
+        main_camera_brand: proj.main_camera_brand || '',
+        spec_version: proj.spec_version || '',
+        notes: proj.notes || '',
       });
     }
   }, [project]);
@@ -144,25 +145,26 @@ const [formData, setFormData] = useState({
 
   const handleReset = () => {
     if (project) {
+      const proj = project as any;
       setFormData({
-        code: project.code,
-        name: project.name,
-        customer: project.customer,
-        production_line: (project as any).production_line || '',
-        product_process: project.product_process || '',
-        date: project.date || '',
-        responsible: project.responsible || '',
-        sales_responsible: (project as any).sales_responsible || '',
-        vision_responsible: (project as any).vision_responsible || '',
-        template_id: project.template_id || '',
-        cycle_time_target: project.cycle_time_target?.toString() || '',
-        environment: project.environment || [],
-        quality_strategy: project.quality_strategy || '',
-        use_3d: (project as any).use_3d || false,
-        use_ai: (project as any).use_ai || false,
-        main_camera_brand: (project as any).main_camera_brand || '',
-        spec_version: project.spec_version || '',
-        notes: project.notes || '',
+        code: proj.code || '',
+        name: proj.name || '',
+        customer: proj.customer || '',
+        production_line: proj.production_line || '',
+        product_process: proj.product_process || '',
+        date: proj.date || '',
+        responsible: proj.responsible || '',
+        sales_responsible: proj.sales_responsible || '',
+        vision_responsible: proj.vision_responsible || '',
+        template_id: proj.template_id || '',
+        cycle_time_target: proj.cycle_time_target?.toString() || '',
+        environment: Array.isArray(proj.environment) ? proj.environment : [],
+        quality_strategy: proj.quality_strategy || '',
+        use_3d: proj.use_3d || false,
+        use_ai: proj.use_ai || false,
+        main_camera_brand: proj.main_camera_brand || '',
+        spec_version: proj.spec_version || '',
+        notes: proj.notes || '',
       });
     }
   };

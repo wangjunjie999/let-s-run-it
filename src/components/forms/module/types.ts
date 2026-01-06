@@ -1,8 +1,7 @@
-import type { Database } from '@/integrations/supabase/types';
-
-export type ModuleType = Database['public']['Enums']['module_type'];
-export type TriggerType = Database['public']['Enums']['trigger_type'];
-export type QualityStrategy = Database['public']['Enums']['quality_strategy'];
+// Local type definitions to avoid dependency on auto-generated Supabase types
+export type ModuleType = 'positioning' | 'defect' | 'ocr' | 'deeplearning' | 'measurement';
+export type TriggerType = 'io' | 'encoder' | 'software' | 'continuous';
+export type QualityStrategy = 'no_miss' | 'balanced' | 'allow_pass';
 
 // Common enums
 export type InspectionSurface = 'top' | 'side' | 'bottom' | 'hole' | 'edge';
@@ -266,8 +265,8 @@ export interface ModuleFormState {
   // New positioning fields
   guidingMode: GuidingMode;
   guidingMechanism: GuidingMechanism;
-  fieldOfView: string;
-  workingDistance: string;
+  fieldOfView: string; // positioning专用视野范围
+  // Note: workingDistance already defined above in imaging section
   grabOffsetX: string;
   grabOffsetY: string;
   toleranceX: string;
@@ -449,7 +448,7 @@ export const getDefaultFormState = (): ModuleFormState => ({
   guidingMode: 'single_camera',
   guidingMechanism: 'fixed',
   fieldOfView: '',
-  workingDistance: '',
+  // workingDistance already has default above
   grabOffsetX: '0',
   grabOffsetY: '0',
   toleranceX: '0.1',

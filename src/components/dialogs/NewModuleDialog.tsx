@@ -6,9 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useData } from '@/contexts/DataContext';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import type { Database } from '@/integrations/supabase/types';
-
-type ModuleType = Database['public']['Enums']['module_type'];
+type ModuleType = 'positioning' | 'defect' | 'ocr' | 'deeplearning' | 'measurement';
 
 export function NewModuleDialog({ open, onOpenChange, workstationId }: { open: boolean; onOpenChange: (open: boolean) => void; workstationId: string | null }) {
   const { addModule, selectModule, layouts, getLayoutByWorkstation } = useData();

@@ -219,71 +219,81 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
         wsToProcess.some(ws => ws.id === l.workstation_id)
       );
 
-      // Prepare data for generator
+      // Prepare data for generator - cast to any to access extended properties
+      const proj = project as any;
       const projectData = {
-        id: project.id,
-        code: project.code,
-        name: project.name,
-        customer: project.customer,
-        date: project.date,
-        responsible: project.responsible,
-        product_process: project.product_process,
-        quality_strategy: project.quality_strategy,
-        environment: project.environment,
-        notes: project.notes,
+        id: proj.id,
+        code: proj.code,
+        name: proj.name,
+        customer: proj.customer,
+        date: proj.date,
+        responsible: proj.responsible,
+        product_process: proj.product_process,
+        quality_strategy: proj.quality_strategy,
+        environment: proj.environment,
+        notes: proj.notes,
       };
 
-      const workstationData = wsToProcess.map(ws => ({
-        id: ws.id,
-        code: ws.code,
-        name: ws.name,
-        type: ws.type,
-        cycle_time: ws.cycle_time,
-        product_dimensions: ws.product_dimensions as { length: number; width: number; height: number } | null,
-        enclosed: ws.enclosed,
-      }));
+      const workstationData = wsToProcess.map(ws => {
+        const wsData = ws as any;
+        return {
+          id: wsData.id,
+          code: wsData.code,
+          name: wsData.name,
+          type: wsData.type,
+          cycle_time: wsData.cycle_time,
+          product_dimensions: wsData.product_dimensions as { length: number; width: number; height: number } | null,
+          enclosed: wsData.enclosed,
+        };
+      });
 
-      const layoutData = layoutsToProcess.map(l => ({
-        workstation_id: l.workstation_id,
-        conveyor_type: l.conveyor_type,
-        camera_count: l.camera_count,
-        lens_count: (l as any).lens_count ?? 1,
-        light_count: (l as any).light_count ?? 1,
-        camera_mounts: l.camera_mounts,
-        mechanisms: l.mechanisms,
-        front_view_saved: l.front_view_saved,
-        side_view_saved: l.side_view_saved,
-        top_view_saved: l.top_view_saved,
-        front_view_url: (l as any).front_view_url || null,
-        side_view_url: (l as any).side_view_url || null,
-        top_view_url: (l as any).top_view_url || null,
-        selected_cameras: (l as any).selected_cameras || null,
-        selected_lenses: (l as any).selected_lenses || null,
-        selected_lights: (l as any).selected_lights || null,
-        selected_controller: (l as any).selected_controller || null,
-      }));
+      const layoutData = layoutsToProcess.map(l => {
+        const layoutItem = l as any;
+        return {
+          workstation_id: layoutItem.workstation_id,
+          conveyor_type: layoutItem.conveyor_type,
+          camera_count: layoutItem.camera_count,
+          lens_count: layoutItem.lens_count ?? 1,
+          light_count: layoutItem.light_count ?? 1,
+          camera_mounts: layoutItem.camera_mounts,
+          mechanisms: layoutItem.mechanisms,
+          front_view_saved: layoutItem.front_view_saved,
+          side_view_saved: layoutItem.side_view_saved,
+          top_view_saved: layoutItem.top_view_saved,
+          front_view_url: layoutItem.front_view_url || null,
+          side_view_url: layoutItem.side_view_url || null,
+          top_view_url: layoutItem.top_view_url || null,
+          selected_cameras: layoutItem.selected_cameras || null,
+          selected_lenses: layoutItem.selected_lenses || null,
+          selected_lights: layoutItem.selected_lights || null,
+          selected_controller: layoutItem.selected_controller || null,
+        };
+      });
 
-      const moduleData = modsToProcess.map(m => ({
-        id: m.id,
-        name: m.name,
-        type: m.type,
-        description: m.description,
-        workstation_id: m.workstation_id,
-        trigger_type: m.trigger_type,
-        roi_strategy: m.roi_strategy,
-        processing_time_limit: m.processing_time_limit,
-        output_types: m.output_types,
-        selected_camera: m.selected_camera,
-        selected_lens: m.selected_lens,
-        selected_light: m.selected_light,
-        selected_controller: m.selected_controller,
-        schematic_image_url: (m as any).schematic_image_url || null,
-        positioning_config: m.positioning_config as Record<string, unknown> | null,
-        defect_config: m.defect_config as Record<string, unknown> | null,
-        ocr_config: m.ocr_config as Record<string, unknown> | null,
-        deep_learning_config: m.deep_learning_config as Record<string, unknown> | null,
-        measurement_config: (m as any).measurement_config as Record<string, unknown> | null,
-      }));
+      const moduleData = modsToProcess.map(m => {
+        const modItem = m as any;
+        return {
+          id: modItem.id,
+          name: modItem.name,
+          type: modItem.type,
+          description: modItem.description,
+          workstation_id: modItem.workstation_id,
+          trigger_type: modItem.trigger_type,
+          roi_strategy: modItem.roi_strategy,
+          processing_time_limit: modItem.processing_time_limit,
+          output_types: modItem.output_types,
+          selected_camera: modItem.selected_camera,
+          selected_lens: modItem.selected_lens,
+          selected_light: modItem.selected_light,
+          selected_controller: modItem.selected_controller,
+          schematic_image_url: modItem.schematic_image_url || null,
+          positioning_config: modItem.positioning_config as Record<string, unknown> | null,
+          defect_config: modItem.defect_config as Record<string, unknown> | null,
+          ocr_config: modItem.ocr_config as Record<string, unknown> | null,
+          deep_learning_config: modItem.deep_learning_config as Record<string, unknown> | null,
+          measurement_config: modItem.measurement_config as Record<string, unknown> | null,
+        };
+      });
 
       // Prepare hardware data
       const hardwareData = {
