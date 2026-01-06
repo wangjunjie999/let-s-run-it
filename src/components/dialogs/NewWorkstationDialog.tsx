@@ -6,9 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useData } from '@/contexts/DataContext';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import type { Database } from '@/integrations/supabase/types';
-
-type WorkstationType = Database['public']['Enums']['workstation_type'];
+type WorkstationType = 'line' | 'turntable' | 'robot' | 'platform';
 
 export function NewWorkstationDialog({ open, onOpenChange, projectId }: { open: boolean; onOpenChange: (open: boolean) => void; projectId: string | null }) {
   const { addWorkstation, selectWorkstation } = useData();
@@ -27,7 +25,7 @@ export function NewWorkstationDialog({ open, onOpenChange, projectId }: { open: 
         cycle_time: parseFloat(form.cycleTime), 
         product_dimensions: { length: 100, width: 100, height: 50 }, 
         status: 'draft' 
-      });
+      } as any);
       selectWorkstation(ws.id);
       onOpenChange(false);
       setForm({ code: '', name: '', type: 'line', cycleTime: '3' });

@@ -31,15 +31,15 @@ export function WorkstationCanvas() {
   const [saveProgress, setSaveProgress] = useState<{ current: number; total: number; viewName: string } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  const workstation = workstations.find(ws => ws.id === selectedWorkstationId);
+  const workstation = workstations.find(ws => ws.id === selectedWorkstationId) as any;
   if (!workstation) return null;
 
-  const layout = getLayoutByWorkstation(selectedWorkstationId!);
+  const layout = getLayoutByWorkstation(selectedWorkstationId!) as any;
   
   // Create default layout values for display
-  const selectedCameras = (layout as any)?.selected_cameras || [];
-  const selectedLenses = (layout as any)?.selected_lenses || [];
-  const selectedController = (layout as any)?.selected_controller || null;
+  const selectedCameras = layout?.selected_cameras || [];
+  const selectedLenses = layout?.selected_lenses || [];
+  const selectedController = layout?.selected_controller || null;
   
   const displayLayout = {
     conveyorType: layout?.conveyor_type || '皮带输送线',
@@ -149,16 +149,13 @@ export function WorkstationCanvas() {
       }
       
       if (layout?.id) {
-        await updateLayout(layout.id, updates);
+        await updateLayout(layout.id, updates as any);
       } else {
         await addLayout({
           workstation_id: selectedWorkstationId!,
-          conveyor_type: displayLayout.conveyorType,
-          camera_count: displayLayout.cameraCount,
-          camera_mounts: displayLayout.cameraMounts,
-          mechanisms: displayLayout.mechanisms,
+          name: workstation.name || 'Layout',
           ...updates
-        });
+        } as any);
       }
       toast.success(`${views.find(v => v.key === currentView)?.label}已保存`);
     } catch (error) {
@@ -206,16 +203,13 @@ export function WorkstationCanvas() {
       if (results.top) updates.top_view_url = results.top;
       
       if (layout?.id) {
-        await updateLayout(layout.id, updates);
+        await updateLayout(layout.id, updates as any);
       } else {
         await addLayout({
           workstation_id: selectedWorkstationId!,
-          conveyor_type: displayLayout.conveyorType,
-          camera_count: displayLayout.cameraCount,
-          camera_mounts: displayLayout.cameraMounts,
-          mechanisms: displayLayout.mechanisms,
+          name: workstation.name || 'Layout',
           ...updates
-        });
+        } as any);
       }
       
       toast.success(`已保存 ${successCount}/3 个视图`);

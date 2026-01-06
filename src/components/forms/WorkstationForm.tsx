@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { Database } from '@/integrations/supabase/types';
 
-type WorkstationType = Database['public']['Enums']['workstation_type'];
+type WorkstationType = 'line' | 'turntable' | 'robot' | 'platform';
 type CameraMount = 'top' | 'side' | 'angled';
 type Mechanism = 'stop' | 'cylinder' | 'gripper' | 'clamp' | 'flip' | 'lift' | 'indexing' | 'robot_pick';
 
@@ -128,20 +128,21 @@ export function WorkstationForm() {
 
   useEffect(() => {
     if (workstation) {
-      const dims = workstation.product_dimensions as { length: number; width: number; height: number } | null;
+      const ws = workstation as any;
+      const dims = ws.product_dimensions as { length: number; width: number; height: number } | null;
       setWsForm({ 
-        code: workstation.code, 
-        name: workstation.name, 
-        type: workstation.type, 
-        cycleTime: workstation.cycle_time?.toString() || '', 
+        code: ws.code || '', 
+        name: ws.name || '', 
+        type: ws.type || 'line', 
+        cycleTime: ws.cycle_time?.toString() || '', 
         length: dims?.length?.toString() || '100', 
         width: dims?.width?.toString() || '100', 
         height: dims?.height?.toString() || '50',
-        enclosed: workstation.enclosed || false,
-        process_stage: (workstation as any).process_stage || '',
-        observation_target: (workstation as any).observation_target || '',
-        environment_description: (workstation as any).environment_description || '',
-        notes: (workstation as any).notes || ''
+        enclosed: ws.enclosed || false,
+        process_stage: ws.process_stage || '',
+        observation_target: ws.observation_target || '',
+        environment_description: ws.environment_description || '',
+        notes: ws.notes || ''
       });
     }
     if (layout) {
@@ -285,35 +286,20 @@ export function WorkstationForm() {
           height: parseFloat(wsForm.height) || 0 
         },
         enclosed: wsForm.enclosed,
-        process_stage: wsForm.process_stage || null,
-        observation_target: wsForm.observation_target || null,
-        environment_description: wsForm.environment_description || null,
-        notes: wsForm.notes || null,
         status: 'incomplete' 
-      });
+      } as any);
       
       // Upsert layout - this will update context state and trigger canvas re-render
       await upsertLayout(workstation.id, {
         conveyor_type: layoutForm.conveyorType,
         camera_count: layoutForm.cameraCount,
-        lens_count: layoutForm.lensCount,
-        light_count: layoutForm.lightCount,
         camera_mounts: layoutForm.cameraMounts,
         mechanisms: layoutForm.mechanisms,
-        selected_cameras: layoutForm.selectedCameras,
-        selected_lenses: layoutForm.selectedLenses,
-        selected_lights: layoutForm.selectedLights,
-        selected_controller: layoutForm.selectedController ? {
-          id: layoutForm.selectedController.id,
-          brand: layoutForm.selectedController.brand,
-          model: layoutForm.selectedController.model,
-          image_url: layoutForm.selectedController.image_url || null,
-        } : null,
-        front_view_saved: layout?.front_view_saved || false, 
-        side_view_saved: layout?.side_view_saved || false, 
-        top_view_saved: layout?.top_view_saved || false, 
+        front_view_saved: (layout as any)?.front_view_saved || false, 
+        side_view_saved: (layout as any)?.side_view_saved || false, 
+        top_view_saved: (layout as any)?.top_view_saved || false, 
         status: 'draft' 
-      });
+      } as any);
       
       toast.success('工位配置已保存');
     } catch (error) {
