@@ -293,7 +293,7 @@ export function ObjectPropertyPanel({
       </div>
 
       {!isMinimized && (
-        <div className="p-3 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-thin">
+        <div className="p-3 space-y-4 max-h-[50vh] overflow-y-auto scrollbar-thin scroll-smooth">
           {/* Name */}
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">名称</Label>
