@@ -134,15 +134,10 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
   const generationPreview = useMemo(() => {
     let wsCount = 0;
     let modCount = 0;
-    let layoutCount = 0;
 
     if (scope === 'full') {
       projectWorkstations.forEach(ws => {
         wsCount++;
-        const wsLayout = allLayouts.find(l => l.workstation_id === ws.id);
-        if (wsLayout?.front_view_saved && wsLayout?.side_view_saved && wsLayout?.top_view_saved) {
-          layoutCount += 3;
-        }
         const wsMods = getWorkstationModules(ws.id);
         modCount += wsMods.length;
       });
@@ -151,10 +146,6 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
         const ws = allWorkstations.find(w => w.id === wsId);
         if (ws) {
           wsCount++;
-          const wsLayout = allLayouts.find(l => l.workstation_id === wsId);
-          if (wsLayout?.front_view_saved && wsLayout?.side_view_saved && wsLayout?.top_view_saved) {
-            layoutCount += 3;
-          }
           const wsMods = getWorkstationModules(wsId);
           modCount += wsMods.length;
         }
@@ -168,8 +159,8 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
       });
     }
 
-    return { wsCount, modCount, layoutCount };
-  }, [scope, selectedWorkstations, selectedModules, projectWorkstations, allLayouts, allModules, allWorkstations, getWorkstationModules]);
+    return { wsCount, modCount };
+  }, [scope, selectedWorkstations, selectedModules, projectWorkstations, allModules, allWorkstations, getWorkstationModules]);
 
   useEffect(() => {
     if (!open) {
@@ -307,12 +298,6 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
           light_count: layoutItem.light_count ?? 1,
           camera_mounts: layoutItem.camera_mounts,
           mechanisms: layoutItem.mechanisms,
-          front_view_saved: layoutItem.front_view_saved,
-          side_view_saved: layoutItem.side_view_saved,
-          top_view_saved: layoutItem.top_view_saved,
-          front_view_url: layoutItem.front_view_url || null,
-          side_view_url: layoutItem.side_view_url || null,
-          top_view_url: layoutItem.top_view_url || null,
           selected_cameras: layoutItem.selected_cameras || null,
           selected_lenses: layoutItem.selected_lenses || null,
           selected_lights: layoutItem.selected_lights || null,
@@ -686,13 +671,13 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
             {/* Generation Preview */}
             <div className="bg-muted/30 rounded-lg p-3">
               <p className="text-xs font-medium mb-2">生成预览</p>
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-2 gap-2 text-center">
                 <div className="space-y-1">
                   <div className="flex items-center justify-center gap-1">
-                    <Layout className="h-4 w-4 text-primary" />
-                    <span className="text-lg font-bold">{generationPreview.layoutCount}</span>
+                    <Table className="h-4 w-4 text-chart-3" />
+                    <span className="text-lg font-bold">{generationPreview.wsCount + generationPreview.modCount}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">布局图</p>
+                  <p className="text-xs text-muted-foreground">参数表</p>
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-center gap-1">

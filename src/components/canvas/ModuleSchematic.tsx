@@ -77,16 +77,16 @@ export function ModuleSchematic() {
     );
   }
 
-  // Check if workstation has saved top view
-  const hasTopView = layout?.top_view_saved as boolean;
+  // Check if workstation has a layout configured
+  const hasLayout = !!layout;
   
-  if (!hasTopView) {
+  if (!hasLayout) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
         <AlertCircle className="h-16 w-16 text-warning" />
         <h3 className="text-lg font-semibold">请先完成工位布局</h3>
         <p className="text-muted-foreground text-center max-w-md">
-          模块2D示意图需要以工位俯视图作为底图。请先选择工位"{workstation.name}"并保存机械布局三视图。
+          模块2D示意图需要以工位布局作为参考。请先选择工位"{workstation.name}"并配置机械布局。
         </p>
         <Button variant="outline" onClick={() => selectModule(null)}>
           返回工位配置

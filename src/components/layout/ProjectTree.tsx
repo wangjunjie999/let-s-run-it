@@ -369,17 +369,16 @@ export function ProjectTree() {
 
   const getWorkstationStatus = (wsId: string) => {
     const layout = layouts.find(l => l.workstation_id === wsId);
+    const wsModules = getWorkstationModules(wsId);
     
     if (!layout) return 'draft';
-    // Workstation is complete when all three views are saved
-    if (layout.front_view_saved && layout.side_view_saved && layout.top_view_saved) {
+    // Workstation is complete when layout exists and all modules have schematics
+    const allSchematicsSaved = wsModules.every(m => !!(m as any).schematic_image_url);
+    if (wsModules.length > 0 && allSchematicsSaved) {
       return 'complete';
     }
-    // If any view is saved, it's in progress
-    if (layout.front_view_saved || layout.side_view_saved || layout.top_view_saved) {
-      return 'incomplete';
-    }
-    return 'draft';
+    // If layout exists, it's in progress
+    return 'incomplete';
   };
 
   const getModuleStatus = (modId: string) => {
@@ -514,10 +513,10 @@ export function ProjectTree() {
                     const allWorkstations = getProjectWorkstations(project.id);
                     const allModules = allWorkstations.flatMap(ws => getWorkstationModules(ws.id));
                     
-                    // Check if all workstations have complete layouts
+                    // Check if all workstations have layouts
                     const layoutsComplete = allWorkstations.every(ws => {
                       const layout = layouts.find(l => l.workstation_id === ws.id);
-                      return layout?.front_view_saved && layout?.side_view_saved && layout?.top_view_saved;
+                      return !!layout;
                     });
                     
                     // Check if all modules have saved schematic images

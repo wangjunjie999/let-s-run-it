@@ -60,8 +60,8 @@ export function ProjectDashboard() {
   const moduleCount = projectWorkstations.reduce((acc, ws) => acc + getWorkstationModules(ws.id).length, 0);
   
   const layoutsComplete = projectWorkstations.filter(ws => {
-    const layout = layouts.find(l => l.workstation_id === ws.id) as any;
-    return layout?.front_view_saved && layout?.side_view_saved && layout?.top_view_saved;
+    const layout = layouts.find(l => l.workstation_id === ws.id);
+    return !!layout; // Layout exists
   }).length;
 
   // Count modules with saved schematic images
@@ -73,7 +73,7 @@ export function ProjectDashboard() {
   const canGenerate = workstationCount > 0 && layoutsComplete === workstationCount && schematicsComplete === moduleCount;
   const missingItems: string[] = [];
   if (workstationCount === 0) missingItems.push('至少添加一个工位');
-  if (layoutsComplete < workstationCount) missingItems.push(`完成工位布局图 (${layoutsComplete}/${workstationCount})`);
+  if (layoutsComplete < workstationCount) missingItems.push(`完成工位布局配置 (${layoutsComplete}/${workstationCount})`);
   if (schematicsComplete < moduleCount) missingItems.push(`完成视觉系统示意图 (${schematicsComplete}/${moduleCount})`);
 
   const template = templates.find(t => t.id === project.template_id);
@@ -82,19 +82,13 @@ export function ProjectDashboard() {
   const handleBatchSaveAll = useCallback(async () => {
     setIsBatchSaving(true);
     
-    // Calculate total tasks
-    const missingLayouts = projectWorkstations.filter(ws => {
-      const layout = layouts.find(l => l.workstation_id === ws.id) as any;
-      return !layout?.front_view_saved || !layout?.side_view_saved || !layout?.top_view_saved;
-    });
-    
+    // Calculate total tasks - only schematics now
     const missingSchematicModules = projectWorkstations.flatMap(ws => {
       return getWorkstationModules(ws.id).filter(m => !(m as any).schematic_image_url);
     });
     
-    const totalLayouts = missingLayouts.length * 3; // 3 views per workstation
     const totalSchematics = missingSchematicModules.length;
-    const grandTotal = totalLayouts + totalSchematics;
+    const grandTotal = totalSchematics;
     
     if (grandTotal === 0) {
       toast.info('所有图片已保存，无需重复操作');
@@ -106,32 +100,8 @@ export function ProjectDashboard() {
     let successCount = 0;
     let errorCount = 0;
     
-    // Note: This is a simplified batch save - actual implementation needs 
-    // to render and capture each view. For now we show progress indication.
-    toast.info(`开始批量保存: ${missingLayouts.length}个工位布局图, ${totalSchematics}个模块示意图`, { duration: 3000 });
-    
-    // For layouts, we would need to navigate to each workstation and save
-    // This is a UI-level operation that requires rendering the canvas
-    // For now, we provide guidance
-    if (missingLayouts.length > 0) {
-      setBatchProgress({ 
-        current: 0, 
-        total: missingLayouts.length, 
-        message: '需要手动保存的工位布局图',
-        type: 'layout'
-      });
-      
-      for (const ws of missingLayouts) {
-        current++;
-        setBatchProgress({ 
-          current, 
-          total: missingLayouts.length, 
-          message: `工位: ${ws.name}`,
-          type: 'layout'
-        });
-        await new Promise(r => setTimeout(r, 100));
-      }
-    }
+    // For schematics, we show progress indication
+    toast.info(`开始批量保存: ${totalSchematics}个模块示意图`, { duration: 3000 });
     
     // For schematics, same situation
     if (missingSchematicModules.length > 0) {
@@ -150,11 +120,13 @@ export function ProjectDashboard() {
     setBatchProgress(null);
     setIsBatchSaving(false);
     
-    toast.info(
-      `请依次访问 ${missingLayouts.length} 个工位保存布局图，${totalSchematics} 个模块保存示意图`,
-      { duration: 5000 }
-    );
-  }, [projectWorkstations, layouts, getWorkstationModules]);
+    if (totalSchematics > 0) {
+      toast.info(
+        `请依次访问 ${totalSchematics} 个模块保存示意图`,
+        { duration: 5000 }
+      );
+    }
+  }, [projectWorkstations, getWorkstationModules]);
 
   return (
     <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">

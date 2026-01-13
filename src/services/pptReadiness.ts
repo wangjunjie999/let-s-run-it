@@ -29,7 +29,6 @@ export interface PPTReadinessResult {
   stats: {
     workstationCount: number;
     moduleCount: number;
-    missingLayoutImages: number;
     missingSchematicImages: number;
   };
 }
@@ -70,7 +69,6 @@ export function checkPPTReadiness(input: CheckInput): PPTReadinessResult {
       stats: {
         workstationCount: 0,
         moduleCount: 0,
-        missingLayoutImages: 0,
         missingSchematicImages: 0,
       },
     };
@@ -93,7 +91,6 @@ export function checkPPTReadiness(input: CheckInput): PPTReadinessResult {
       stats: {
         workstationCount: 0,
         moduleCount: 0,
-        missingLayoutImages: 0,
         missingSchematicImages: 0,
       },
     };
@@ -132,40 +129,16 @@ export function checkPPTReadiness(input: CheckInput): PPTReadinessResult {
   // 4. 草案版检查：至少需要1个工位
   const draftReady = projectMissing.length === 0 && projectWorkstations.length > 0;
   
-  // 5. 检查工位三视图
-  let missingLayoutImages = 0;
+  // 5. 检查工位布局配置
   projectWorkstations.forEach(ws => {
     const layout = layouts.find(l => l.workstation_id === ws.id);
-    const wsMissing: string[] = [];
     
     if (!layout) {
-      wsMissing.push('机械布局配置');
-    } else {
-      // 检查三视图是否都已保存且有URL
-      const frontViewOk = layout.front_view_saved && (layout as any).front_view_url;
-      const sideViewOk = layout.side_view_saved && (layout as any).side_view_url;
-      const topViewOk = layout.top_view_saved && (layout as any).top_view_url;
-      
-      if (!frontViewOk) {
-        wsMissing.push('正视图');
-        missingLayoutImages++;
-      }
-      if (!sideViewOk) {
-        wsMissing.push('侧视图');
-        missingLayoutImages++;
-      }
-      if (!topViewOk) {
-        wsMissing.push('俯视图');
-        missingLayoutImages++;
-      }
-    }
-    
-    if (wsMissing.length > 0) {
       missing.push({
         level: 'workstation',
         id: ws.id,
         name: ws.name,
-        missing: wsMissing,
+        missing: ['机械布局配置'],
         actionType: 'selectWorkstation',
         targetId: ws.id,
       });
@@ -210,7 +183,6 @@ export function checkPPTReadiness(input: CheckInput): PPTReadinessResult {
   // 8. 交付版检查条件
   const finalReady = 
     draftReady &&
-    missingLayoutImages === 0 &&
     missingSchematicImages === 0 &&
     projectModules.length > 0; // 至少需要一个模块（或明确允许无模块策略）
   
@@ -284,7 +256,6 @@ export function checkPPTReadiness(input: CheckInput): PPTReadinessResult {
     stats: {
       workstationCount: projectWorkstations.length,
       moduleCount: projectModules.length,
-      missingLayoutImages,
       missingSchematicImages,
     },
   };
