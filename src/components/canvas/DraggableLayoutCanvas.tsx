@@ -104,6 +104,52 @@ export function DraggableLayoutCanvas({ workstationId }: DraggableLayoutCanvasPr
   const productH = productDimensions.height * scale;
   const productD = productDimensions.width * scale;
 
+  // Object manipulation functions (defined before useEffect that uses them)
+  const updateObject = useCallback((id: string, updates: Partial<LayoutObject>) => {
+    setObjects(prev => prev.map(obj => 
+      obj.id === id ? { ...obj, ...updates } : obj
+    ));
+  }, []);
+
+  const deleteObject = useCallback((id: string) => {
+    setObjects(prev => prev.filter(o => o.id !== id));
+    setSelectedId(prevSelectedId => {
+      if (prevSelectedId === id) {
+        setShowPropertyPanel(false);
+        return null;
+      }
+      return prevSelectedId;
+    });
+    setSecondSelectedId(prevSecondId => prevSecondId === id ? null : prevSecondId);
+  }, []);
+
+  const duplicateObject = useCallback((id: string) => {
+    setObjects(prev => {
+      const obj = prev.find(o => o.id === id);
+      if (!obj) return prev;
+      
+      const newObj: LayoutObject = {
+        ...obj,
+        id: `${obj.type}-${Date.now()}`,
+        x: obj.x + 40,
+        y: obj.y + 40,
+        locked: false,
+      };
+      
+      if (obj.type === 'camera') {
+        const cameraCount = prev.filter(o => o.type === 'camera').length;
+        newObj.name = `CAM${cameraCount + 1}`;
+        newObj.cameraIndex = cameraCount + 1;
+      } else if (obj.mechanismId) {
+        const mechCount = prev.filter(o => o.mechanismId === obj.mechanismId).length;
+        newObj.name = `${obj.name?.split('#')[0] || 'Mechanism'}#${mechCount + 1}`;
+      }
+      
+      setSelectedId(newObj.id);
+      return [...prev, newObj];
+    });
+  }, []);
+
   // Load layout objects when layout changes
   useEffect(() => {
     if (layout?.layout_objects) {
@@ -197,7 +243,7 @@ export function DraggableLayoutCanvas({ workstationId }: DraggableLayoutCanvasPr
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [selectedId, objects]);
+  }, [selectedId, objects, deleteObject, updateObject, duplicateObject, scale]);
 
   const snapToGrid = useCallback((value: number) => {
     if (!snapEnabled) return value;
@@ -314,54 +360,11 @@ export function DraggableLayoutCanvas({ workstationId }: DraggableLayoutCanvasPr
     setZoom(prev => Math.min(3, Math.max(0.25, prev + delta)));
   };
 
-  const updateObject = (id: string, updates: Partial<LayoutObject>) => {
-    setObjects(prev => prev.map(obj => 
-      obj.id === id ? { ...obj, ...updates } : obj
-    ));
-  };
-
-  const handleResize = (id: string, width: number, height: number, x: number, y: number) => {
+  const handleResize = useCallback((id: string, width: number, height: number, x: number, y: number) => {
     setObjects(prev => prev.map(obj => 
       obj.id === id ? { ...obj, width, height, x, y } : obj
     ));
-  };
-
-  const deleteObject = (id: string) => {
-    setObjects(prev => prev.filter(o => o.id !== id));
-    if (selectedId === id) {
-      setSelectedId(null);
-      setShowPropertyPanel(false);
-    }
-    if (secondSelectedId === id) {
-      setSecondSelectedId(null);
-    }
-  };
-
-  const duplicateObject = (id: string) => {
-    const obj = objects.find(o => o.id === id);
-    if (!obj) return;
-    
-    const newObj: LayoutObject = {
-      ...obj,
-      id: `${obj.type}-${Date.now()}`,
-      x: obj.x + 40,
-      y: obj.y + 40,
-      locked: false,
-    };
-    
-    if (obj.type === 'camera') {
-      const cameraCount = objects.filter(o => o.type === 'camera').length;
-      newObj.name = `CAM${cameraCount + 1}`;
-      newObj.cameraIndex = cameraCount + 1;
-    } else if (obj.mechanismId) {
-      const mechCount = (mechanismCounts[obj.mechanismId] || 0) + 1;
-      const mech = mechanisms.find(m => m.id === obj.mechanismId);
-      newObj.name = `${mech?.name || 'Mechanism'}#${mechCount}`;
-    }
-    
-    setObjects(prev => [...prev, newObj]);
-    setSelectedId(newObj.id);
-  };
+  }, []);
 
   const addCamera = () => {
     const cameraCount = objects.filter(o => o.type === 'camera').length;
