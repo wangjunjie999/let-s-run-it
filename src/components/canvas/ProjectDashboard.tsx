@@ -468,7 +468,7 @@ export function ProjectDashboard() {
             {/* Batch Save Button */}
             <div className="pt-2 border-t border-border">
               <Button 
-                variant="glow"
+                variant="default"
                 className="w-full gap-2"
                 onClick={handleBatchSaveAll}
                 disabled={isBatchSaving || canGenerate}
