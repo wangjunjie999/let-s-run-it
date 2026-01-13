@@ -515,33 +515,28 @@ export function ModuleForm() {
           </div>
         </div>
 
-        {/* 成像与光学参数 */}
+        {/* 成像与光学参数 - 紧凑单行布局 */}
         <div className="form-section">
           <h3 className="form-section-title">
             <span className="w-1 h-4 bg-primary rounded-full" />
             成像与光学参数
           </h3>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
+            {/* 第一行：核心参数 */}
+            <div className="grid grid-cols-5 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">工作距离 WD (mm)</Label>
-                <Textarea 
-                  value={form.workingDistance || form.fieldOfView ? (form.type === 'positioning' ? form.workingDistance : '') : ''} 
-                  onChange={e => {
-                    if (form.type === 'positioning') {
-                      setForm(p => ({ ...p, workingDistance: e.target.value }));
-                    } else {
-                      setForm(p => ({ ...p, workingDistance: e.target.value }));
-                    }
-                  }}
-                  placeholder="例如: 300"
-                  className="min-h-[60px] resize-none" 
+                <Label className="text-xs text-muted-foreground">WD (mm)</Label>
+                <Input 
+                  value={form.workingDistance || ''} 
+                  onChange={e => setForm(p => ({ ...p, workingDistance: e.target.value }))}
+                  placeholder="300"
+                  className="h-8 text-sm" 
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">视野 FOV (mm×mm)</Label>
-                <Textarea 
-                  value={form.fieldOfViewCommon || (form.type === 'positioning' ? form.fieldOfView : '')} 
+                <Label className="text-xs text-muted-foreground">FOV (mm)</Label>
+                <Input 
+                  value={form.fieldOfViewCommon || form.fieldOfView || ''} 
                   onChange={e => {
                     if (form.type === 'positioning') {
                       setForm(p => ({ ...p, fieldOfView: e.target.value }));
@@ -549,59 +544,57 @@ export function ModuleForm() {
                       setForm(p => ({ ...p, fieldOfViewCommon: e.target.value }));
                     }
                   }}
-                  placeholder="例如: 100×80"
-                  className="min-h-[60px] resize-none" 
+                  placeholder="100×80"
+                  className="h-8 text-sm" 
                 />
               </div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">分辨率换算 (mm/px)</Label>
-                <Textarea 
-                  value={form.resolutionPerPixel} 
+                <Label className="text-xs text-muted-foreground">分辨率 (mm/px)</Label>
+                <Input 
+                  value={form.resolutionPerPixel || ''} 
                   onChange={e => setForm(p => ({ ...p, resolutionPerPixel: e.target.value }))} 
-                  placeholder="例如: 0.1"
-                  className="min-h-[60px] resize-none" 
+                  placeholder="0.1"
+                  className="h-8 text-sm" 
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">曝光 (us/ms)</Label>
-                <Textarea 
-                  value={form.exposure} 
+                <Label className="text-xs text-muted-foreground">曝光</Label>
+                <Input 
+                  value={form.exposure || ''} 
                   onChange={e => setForm(p => ({ ...p, exposure: e.target.value }))} 
-                  placeholder="例如: 10ms"
-                  className="min-h-[60px] resize-none" 
+                  placeholder="10ms"
+                  className="h-8 text-sm" 
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">增益 (dB)</Label>
-                <Textarea 
-                  value={form.gain} 
+                <Label className="text-xs text-muted-foreground">增益 (dB)</Label>
+                <Input 
+                  value={form.gain || ''} 
                   onChange={e => setForm(p => ({ ...p, gain: e.target.value }))} 
-                  placeholder="例如: 0"
-                  className="min-h-[60px] resize-none" 
+                  placeholder="0"
+                  className="h-8 text-sm" 
                 />
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
+            {/* 第二行：光源与镜头参数 */}
+            <div className="grid grid-cols-6 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">触发延时 (ms)</Label>
-                <Textarea 
-                  value={form.triggerDelay} 
+                <Label className="text-xs text-muted-foreground">触发延时</Label>
+                <Input 
+                  value={form.triggerDelay || ''} 
                   onChange={e => setForm(p => ({ ...p, triggerDelay: e.target.value }))} 
-                  placeholder="例如: 0"
-                  className="min-h-[60px] resize-none" 
+                  placeholder="0ms"
+                  className="h-8 text-sm" 
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">光源模式</Label>
+                <Label className="text-xs text-muted-foreground">光源模式</Label>
                 <Select 
                   value={form.lightMode} 
                   onValueChange={v => setForm(p => ({ ...p, lightMode: v }))}
                 >
-                  <SelectTrigger className="h-9"><SelectValue placeholder="请选择" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="选择" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="常亮">常亮</SelectItem>
                     <SelectItem value="频闪">频闪</SelectItem>
@@ -609,47 +602,42 @@ export function ModuleForm() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">光源角度</Label>
-                <Textarea 
-                  value={form.lightAngle} 
+                <Label className="text-xs text-muted-foreground">光源角度</Label>
+                <Input 
+                  value={form.lightAngle || ''} 
                   onChange={e => setForm(p => ({ ...p, lightAngle: e.target.value }))} 
-                  placeholder="例如: 45°"
-                  className="min-h-[60px] resize-none" 
+                  placeholder="45°"
+                  className="h-8 text-sm" 
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">光源距离 (mm)</Label>
-                <Textarea 
-                  value={form.lightDistance} 
+                <Label className="text-xs text-muted-foreground">光源距离</Label>
+                <Input 
+                  value={form.lightDistance || ''} 
                   onChange={e => setForm(p => ({ ...p, lightDistance: e.target.value }))} 
-                  placeholder="例如: 100"
-                  className="min-h-[60px] resize-none" 
+                  placeholder="100mm"
+                  className="h-8 text-sm" 
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">镜头光圈 (F值)</Label>
-                <Textarea 
-                  value={form.lensAperture} 
+                <Label className="text-xs text-muted-foreground">光圈 (F值)</Label>
+                <Input 
+                  value={form.lensAperture || ''} 
                   onChange={e => setForm(p => ({ ...p, lensAperture: e.target.value }))} 
-                  placeholder="例如: F2.8"
-                  className="min-h-[60px] resize-none" 
+                  placeholder="F2.8"
+                  className="h-8 text-sm" 
                 />
               </div>
-            </div>
-            
-            <div className="space-y-1">
-              <Label className="text-xs">景深要求 (mm)</Label>
-              <Input 
-                type="number"
-                value={form.depthOfField} 
-                onChange={e => setForm(p => ({ ...p, depthOfField: e.target.value }))} 
-                placeholder="例如: 5"
-                className="h-9" 
-              />
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">景深 (mm)</Label>
+                <Input 
+                  value={form.depthOfField || ''} 
+                  onChange={e => setForm(p => ({ ...p, depthOfField: e.target.value }))} 
+                  placeholder="5"
+                  className="h-8 text-sm" 
+                />
+              </div>
             </div>
           </div>
         </div>
