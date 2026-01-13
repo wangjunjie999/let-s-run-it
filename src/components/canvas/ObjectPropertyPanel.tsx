@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -67,6 +67,40 @@ export function ObjectPropertyPanel({
     name: '',
   });
   const [isMinimized, setIsMinimized] = useState(false);
+  
+  // Vertical drag state
+  const [panelY, setPanelY] = useState(16); // Initial top offset in pixels
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Handle panel drag
+  const handleDragStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    setDragStartY(e.clientY - panelY);
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const newY = Math.max(16, Math.min(window.innerHeight - 200, e.clientY - dragStartY));
+      setPanelY(newY);
+    };
+    
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragStartY]);
 
   useEffect(() => {
     if (object) {
@@ -216,18 +250,34 @@ export function ObjectPropertyPanel({
   const typeLabel = object.type === 'camera' ? '相机' : '机构';
 
   return (
-    <div className={cn(
-      "absolute right-4 top-4 bg-card/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl overflow-hidden z-10 transition-all duration-200",
-      isMinimized ? "w-56" : "w-72"
-    )}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 bg-gradient-to-r from-muted/80 to-muted/40 border-b border-border">
+    <div 
+      ref={panelRef}
+      style={{ top: `${panelY}px` }}
+      className={cn(
+        "absolute right-4 bg-card/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl overflow-hidden z-10 transition-shadow duration-200",
+        isMinimized ? "w-56" : "w-72",
+        isDragging && "shadow-xl ring-2 ring-primary/30"
+      )}
+    >
+      {/* Draggable Header */}
+      <div 
+        className={cn(
+          "flex items-center justify-between px-3 py-2.5 bg-gradient-to-r from-muted/80 to-muted/40 border-b border-border",
+          "cursor-grab active:cursor-grabbing select-none"
+        )}
+        onMouseDown={handleDragStart}
+      >
         <div className="flex items-center gap-2 flex-1 min-w-0">
+          {/* Drag indicator */}
+          <div className="flex flex-col gap-0.5 mr-1 opacity-50">
+            <div className="w-4 h-0.5 bg-muted-foreground rounded-full" />
+            <div className="w-4 h-0.5 bg-muted-foreground rounded-full" />
+          </div>
           <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", typeColor)} />
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{typeLabel}</span>
           <span className="text-sm font-semibold truncate">{object.name}</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" onMouseDown={e => e.stopPropagation()}>
           <Button 
             variant="ghost" 
             size="icon" 
