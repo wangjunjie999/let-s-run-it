@@ -24,8 +24,9 @@ import {
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Crosshair,
   Move, LayoutGrid, AlignHorizontalJustifyCenter, 
   AlignVerticalJustifyCenter, AlignCenterHorizontal,
-  ImageIcon, Check
+  ImageIcon, Check, ChevronDown, ChevronUp, Settings2
 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { ObjectPropertyPanel, type LayoutObject } from './ObjectPropertyPanel';
 import { ObjectListPanel } from './ObjectListPanel';
@@ -107,6 +108,9 @@ export function DraggableLayoutCanvas({ workstationId }: DraggableLayoutCanvasPr
   // Show camera spacing and working distance
   const [showCameraSpacing, setShowCameraSpacing] = useState(true);
   const [showWorkingDistance, setShowWorkingDistance] = useState(true);
+  
+  // Toolbar settings row collapsed
+  const [settingsCollapsed, setSettingsCollapsed] = useState(false);
   
   // Three-view screenshot saving
   const [isSavingView, setIsSavingView] = useState(false);
@@ -1044,52 +1048,70 @@ export function DraggableLayoutCanvas({ workstationId }: DraggableLayoutCanvasPr
         </div>
       </div>
       
-      {/* Toolbar - Row 2: Settings */}
-      <div className="flex items-center gap-4 px-4 py-1.5 bg-muted/30 border-b border-border">
-        {/* Grid Size */}
-        <Select value={gridSize.toString()} onValueChange={(v) => setGridSize(parseInt(v))}>
-          <SelectTrigger className="w-16 h-7 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="10">10px</SelectItem>
-            <SelectItem value="20">20px</SelectItem>
-            <SelectItem value="40">40px</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <div className="flex items-center gap-1">
-          <Switch checked={gridEnabled} onCheckedChange={setGridEnabled} id="grid" className="scale-90" />
-          <Label htmlFor="grid" className="text-xs cursor-pointer">网格</Label>
+      {/* Toolbar - Row 2: Collapsible Settings */}
+      <Collapsible open={!settingsCollapsed} onOpenChange={(open) => setSettingsCollapsed(!open)}>
+        <div className="flex items-center bg-muted/30 border-b border-border">
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 px-2 gap-1 text-xs text-muted-foreground hover:text-foreground shrink-0"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              设置
+              {settingsCollapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+            </Button>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent className="flex-1 CollapsibleContent">
+            <div className="flex items-center gap-4 px-2 py-1.5">
+              {/* Grid Size */}
+              <Select value={gridSize.toString()} onValueChange={(v) => setGridSize(parseInt(v))}>
+                <SelectTrigger className="w-16 h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10px</SelectItem>
+                  <SelectItem value="20">20px</SelectItem>
+                  <SelectItem value="40">40px</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <div className="flex items-center gap-1">
+                <Switch checked={gridEnabled} onCheckedChange={setGridEnabled} id="grid" className="scale-90" />
+                <Label htmlFor="grid" className="text-xs cursor-pointer">网格</Label>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <Switch checked={snapEnabled} onCheckedChange={setSnapEnabled} id="snap" className="scale-90" />
+                <Label htmlFor="snap" className="text-xs cursor-pointer">网格吸附</Label>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <Switch checked={smartSnapEnabled} onCheckedChange={setSmartSnapEnabled} id="smartsnap" className="scale-90" />
+                <Label htmlFor="smartsnap" className="text-xs cursor-pointer">智能对齐</Label>
+              </div>
+              
+              <div className="h-4 w-px bg-border" />
+              
+              <div className="flex items-center gap-1">
+                <Switch checked={showDistances} onCheckedChange={setShowDistances} id="dist" className="scale-90" />
+                <Label htmlFor="dist" className="text-xs cursor-pointer">标注</Label>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <Switch checked={showCameraSpacing} onCheckedChange={setShowCameraSpacing} id="spacing" className="scale-90" />
+                <Label htmlFor="spacing" className="text-xs cursor-pointer">相机间距</Label>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <Switch checked={showObjectList} onCheckedChange={setShowObjectList} id="table" className="scale-90" />
+                <Label htmlFor="table" className="text-xs cursor-pointer">对象清单</Label>
+              </div>
+            </div>
+          </CollapsibleContent>
         </div>
-        
-        <div className="flex items-center gap-1">
-          <Switch checked={snapEnabled} onCheckedChange={setSnapEnabled} id="snap" className="scale-90" />
-          <Label htmlFor="snap" className="text-xs cursor-pointer">网格吸附</Label>
-        </div>
-        
-        <div className="flex items-center gap-1">
-          <Switch checked={smartSnapEnabled} onCheckedChange={setSmartSnapEnabled} id="smartsnap" className="scale-90" />
-          <Label htmlFor="smartsnap" className="text-xs cursor-pointer">智能对齐</Label>
-        </div>
-        
-        <div className="h-4 w-px bg-border" />
-        
-        <div className="flex items-center gap-1">
-          <Switch checked={showDistances} onCheckedChange={setShowDistances} id="dist" className="scale-90" />
-          <Label htmlFor="dist" className="text-xs cursor-pointer">标注</Label>
-        </div>
-        
-        <div className="flex items-center gap-1">
-          <Switch checked={showCameraSpacing} onCheckedChange={setShowCameraSpacing} id="spacing" className="scale-90" />
-          <Label htmlFor="spacing" className="text-xs cursor-pointer">相机间距</Label>
-        </div>
-        
-        <div className="flex items-center gap-1">
-          <Switch checked={showObjectList} onCheckedChange={setShowObjectList} id="table" className="scale-90" />
-          <Label htmlFor="table" className="text-xs cursor-pointer">对象清单</Label>
-        </div>
-      </div>
+      </Collapsible>
       
       {/* Objects count summary */}
       <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-b border-border text-sm">
