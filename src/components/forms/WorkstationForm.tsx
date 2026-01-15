@@ -6,12 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Settings2 } from 'lucide-react';
+import { AlertTriangle, Settings2, ImageIcon } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { HardwareConfigPanel, HardwareItemData } from '@/components/hardware/HardwareConfigPanel';
 import { toast } from 'sonner';
 import { ProductAnnotationPanel } from '@/components/product/ProductAnnotationPanel';
+import { LayoutViewsPreview } from '@/components/canvas/LayoutViewsPreview';
 import {
   Tooltip,
   TooltipContent,
@@ -836,6 +837,17 @@ export function WorkstationForm() {
           </p>
         )}
       </div>
+      
+      {/* Layout Three-View Preview */}
+      {selectedWorkstationId && (
+        <div className="mt-4 pt-4 border-t">
+          <div className="flex items-center gap-2 mb-3">
+            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">布局三视图预览</span>
+          </div>
+          <LayoutViewsPreview workstationId={selectedWorkstationId} />
+        </div>
+      )}
     </div>
   );
 
