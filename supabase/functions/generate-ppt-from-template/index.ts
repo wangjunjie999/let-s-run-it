@@ -198,8 +198,14 @@ serve(async (req) => {
 
     console.log(`Generated PPTX, size: ${outputBuffer.length} bytes`);
 
-    // 上传到存储
-    const outputPath = `generated/${userId}/${Date.now()}_${outputFileName}`;
+    // 上传到存储 - 使用安全的文件名（移除中文和特殊字符）
+    const safeFileName = outputFileName
+      .replace(/[^\w\s.-]/g, '_')  // 替换非字母数字字符为下划线
+      .replace(/\s+/g, '_')         // 替换空格为下划线
+      .replace(/_+/g, '_')          // 合并连续下划线
+      .replace(/^_|_$/g, '');       // 移除首尾下划线
+    
+    const outputPath = `generated/${userId}/${Date.now()}_${safeFileName || 'output.pptx'}`;
     const { error: uploadError } = await supabase.storage
       .from('ppt-templates')
       .upload(outputPath, outputBuffer, {
