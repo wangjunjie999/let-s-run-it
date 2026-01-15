@@ -928,8 +928,8 @@ export function DraggableLayoutCanvas({ workstationId }: DraggableLayoutCanvasPr
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-card border-b border-border">
+      {/* Toolbar - Row 1: Views and Actions */}
+      <div className="flex items-center justify-between gap-3 px-4 py-2 bg-card border-b border-border">
         {/* Left: View tabs */}
         <div className="flex gap-1">
           {(['front', 'side', 'top'] as ViewType[]).map(view => (
@@ -937,35 +937,35 @@ export function DraggableLayoutCanvas({ workstationId }: DraggableLayoutCanvasPr
               key={view}
               onClick={() => setCurrentView(view)}
               className={cn(
-                'px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2',
+                'px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1.5',
                 currentView === view 
-                  ? 'bg-primary text-primary-foreground shadow-md' 
+                  ? 'bg-primary text-primary-foreground shadow-sm' 
                   : 'bg-muted hover:bg-muted/80 text-muted-foreground'
               )}
             >
               {view === 'front' ? '正视图 (X-Z)' : view === 'side' ? '左视图 (Y-Z)' : '俯视图 (X-Y)'}
               {viewSaveStatus[view] && (
-                <Check className="h-3.5 w-3.5 text-green-500" />
+                <Check className="h-3 w-3 text-green-500" />
               )}
             </button>
           ))}
         </div>
         
-        {/* Center: Add objects */}
+        {/* Right: Add objects and save buttons */}
         <div className="flex items-center gap-2">
-          <Button variant="default" size="sm" onClick={addCamera} className="gap-2">
-            <Camera className="h-4 w-4" />
+          <Button variant="default" size="sm" onClick={addCamera} className="gap-1.5 h-8">
+            <Camera className="h-3.5 w-3.5" />
             添加相机
           </Button>
           
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Plus className="h-4 w-4" />
+              <Button variant="outline" size="sm" className="gap-1.5 h-8">
+                <Plus className="h-3.5 w-3.5" />
                 添加机构
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-72 p-2" align="start">
+            <PopoverContent className="w-72 p-2" align="end">
               <div className="space-y-1 max-h-72 overflow-y-auto">
                 {enabledMechanisms.length === 0 ? (
                   <p className="text-sm text-muted-foreground p-3 text-center">暂无可用机构</p>
@@ -995,107 +995,31 @@ export function DraggableLayoutCanvas({ workstationId }: DraggableLayoutCanvasPr
               </div>
             </PopoverContent>
           </Popover>
-        </div>
-        
-        {/* Right: Settings and save */}
-        <div className="flex items-center gap-3">
-          {/* Grid Size */}
-          <Select value={gridSize.toString()} onValueChange={(v) => setGridSize(parseInt(v))}>
-            <SelectTrigger className="w-20 h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10px</SelectItem>
-              <SelectItem value="20">20px</SelectItem>
-              <SelectItem value="40">40px</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <div className="flex items-center gap-1.5">
-            <Switch checked={gridEnabled} onCheckedChange={setGridEnabled} id="grid" />
-            <Label htmlFor="grid" className="text-xs cursor-pointer flex items-center gap-1">
-              <Grid3X3 className="h-3.5 w-3.5" />
-              网格
-            </Label>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Switch checked={snapEnabled} onCheckedChange={setSnapEnabled} id="snap" />
-            <Label htmlFor="snap" className="text-xs cursor-pointer flex items-center gap-1">
-              <Magnet className="h-3.5 w-3.5" />
-              网格吸附
-            </Label>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Switch checked={smartSnapEnabled} onCheckedChange={setSmartSnapEnabled} id="smartsnap" />
-            <Label htmlFor="smartsnap" className="text-xs cursor-pointer flex items-center gap-1">
-              <Move className="h-3.5 w-3.5" />
-              智能对齐
-            </Label>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Switch checked={showDistances} onCheckedChange={setShowDistances} id="dist" />
-            <Label htmlFor="dist" className="text-xs cursor-pointer flex items-center gap-1">
-              <Ruler className="h-3.5 w-3.5" />
-              标注
-            </Label>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Switch checked={showCameraSpacing} onCheckedChange={setShowCameraSpacing} id="spacing" />
-            <Label htmlFor="spacing" className="text-xs cursor-pointer">
-              相机间距
-            </Label>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Switch checked={showObjectList} onCheckedChange={setShowObjectList} id="table" />
-            <Label htmlFor="table" className="text-xs cursor-pointer">
-              对象清单
-            </Label>
-          </div>
-          
-          {/* Auto-arrange button */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={autoArrangeObjects} className="gap-1">
-                  <LayoutGrid className="h-4 w-4" />
-                  自动排布
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>一键重新排列所有对象，防止重叠</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
           
           <div className="h-5 w-px bg-border" />
           
-          <Button variant="outline" size="sm" onClick={resetLayout} className="gap-1">
-            <RotateCcw className="h-4 w-4" />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={autoArrangeObjects} className="gap-1.5 h-8">
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  自动排布
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>一键重新排列所有对象</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <Button variant="ghost" size="icon" onClick={resetLayout} className="h-8 w-8">
+            <RotateCcw className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={isSaving} className="gap-2">
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          
+          <Button size="sm" onClick={handleSave} disabled={isSaving} className="gap-1.5 h-8">
+            {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             保存布局
           </Button>
           
           <div className="h-5 w-px bg-border" />
-          
-          {/* Save view screenshots */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => saveCurrentViewSnapshot()} 
-                  disabled={isSavingView || isSavingAllViews}
-                  className="gap-2"
-                >
-                  {isSavingView ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                  保存当前视图
-                  {viewSaveStatus[currentView] && <Check className="h-3.5 w-3.5 text-green-500" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>将当前视图保存为图片，用于PPT生成</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
           
           <TooltipProvider>
             <Tooltip>
@@ -1105,18 +1029,65 @@ export function DraggableLayoutCanvas({ workstationId }: DraggableLayoutCanvasPr
                   size="sm" 
                   onClick={saveAllViewSnapshots} 
                   disabled={isSavingView || isSavingAllViews}
-                  className="gap-2"
+                  className="gap-1.5 h-8"
                 >
-                  {isSavingAllViews ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                  {isSavingAllViews ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
                   保存三视图
                   {viewSaveStatus.front && viewSaveStatus.side && viewSaveStatus.top && (
-                    <Check className="h-3.5 w-3.5 text-green-500" />
+                    <Check className="h-3 w-3 text-green-500" />
                   )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>一键保存三个视图截图，用于PPT生成</TooltipContent>
             </Tooltip>
           </TooltipProvider>
+        </div>
+      </div>
+      
+      {/* Toolbar - Row 2: Settings */}
+      <div className="flex items-center gap-4 px-4 py-1.5 bg-muted/30 border-b border-border">
+        {/* Grid Size */}
+        <Select value={gridSize.toString()} onValueChange={(v) => setGridSize(parseInt(v))}>
+          <SelectTrigger className="w-16 h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="10">10px</SelectItem>
+            <SelectItem value="20">20px</SelectItem>
+            <SelectItem value="40">40px</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <div className="flex items-center gap-1">
+          <Switch checked={gridEnabled} onCheckedChange={setGridEnabled} id="grid" className="scale-90" />
+          <Label htmlFor="grid" className="text-xs cursor-pointer">网格</Label>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <Switch checked={snapEnabled} onCheckedChange={setSnapEnabled} id="snap" className="scale-90" />
+          <Label htmlFor="snap" className="text-xs cursor-pointer">网格吸附</Label>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <Switch checked={smartSnapEnabled} onCheckedChange={setSmartSnapEnabled} id="smartsnap" className="scale-90" />
+          <Label htmlFor="smartsnap" className="text-xs cursor-pointer">智能对齐</Label>
+        </div>
+        
+        <div className="h-4 w-px bg-border" />
+        
+        <div className="flex items-center gap-1">
+          <Switch checked={showDistances} onCheckedChange={setShowDistances} id="dist" className="scale-90" />
+          <Label htmlFor="dist" className="text-xs cursor-pointer">标注</Label>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <Switch checked={showCameraSpacing} onCheckedChange={setShowCameraSpacing} id="spacing" className="scale-90" />
+          <Label htmlFor="spacing" className="text-xs cursor-pointer">相机间距</Label>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <Switch checked={showObjectList} onCheckedChange={setShowObjectList} id="table" className="scale-90" />
+          <Label htmlFor="table" className="text-xs cursor-pointer">对象清单</Label>
         </div>
       </div>
       
