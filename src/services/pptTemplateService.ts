@@ -1,4 +1,17 @@
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  SYSTEM_FIELDS, 
+  getAvailableSystemFields, 
+  parseTemplate, 
+  autoMapFields,
+  LOOP_SYNTAX_EXAMPLES,
+  type ParsedTemplate,
+  type FieldMapping,
+} from "./pptTemplateParser";
+
+// Re-export for convenience
+export { SYSTEM_FIELDS, getAvailableSystemFields, parseTemplate, autoMapFields, LOOP_SYNTAX_EXAMPLES };
+export type { ParsedTemplate, FieldMapping };
 
 export interface PPTTemplateData {
   // 项目基本信息
@@ -71,6 +84,7 @@ export interface GenerateFromTemplateOptions {
   templateUrl?: string;
   data: PPTTemplateData;
   outputFileName?: string;
+  fieldMappings?: FieldMapping[];
 }
 
 export interface GenerateFromTemplateResult {
@@ -154,30 +168,3 @@ export const TEMPLATE_PLACEHOLDERS = {
   generated_date: '生成日期',
   generated_time: '生成时间',
 };
-
-/**
- * 循环模板语法示例
- */
-export const LOOP_SYNTAX_EXAMPLES = `
-工位循环:
-{{#workstations}}
-  工位 {{index}}: {{name}}
-  编号: {{code}}
-  类型: {{type}}
-  模块数: {{module_count}}
-  
-  {{#modules}}
-    模块 {{index}}: {{name}} ({{type}})
-  {{/modules}}
-{{/workstations}}
-
-相机循环:
-{{#hardware.cameras}}
-  {{brand}} {{model}} - {{resolution}}
-{{/hardware.cameras}}
-
-镜头循环:
-{{#hardware.lenses}}
-  {{brand}} {{model}} - {{focal_length}}
-{{/hardware.lenses}}
-`;

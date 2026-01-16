@@ -10,11 +10,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Star, Trash2, Upload, FileText, Edit, Download, Eye, Image as ImageIcon } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Plus, Star, Trash2, Upload, FileText, Edit, Download, Eye, Image as ImageIcon, Loader2, CheckCircle2, Code, List, Scan } from 'lucide-react';
 import { usePPTTemplates, PPTTemplateInsert } from '@/hooks/usePPTTemplates';
 import { toast } from 'sonner';
+import { parseTemplate, SYSTEM_FIELDS, autoMapFields, type ParsedTemplate, type FieldMapping } from '@/services/pptTemplateParser';
 
-const SECTION_OPTIONS = [
+// 动态页面结构选项 - 将根据模板解析结果动态更新
+const DEFAULT_SECTION_OPTIONS = [
   { id: 'cover', label: '封面页' },
   { id: 'overview', label: '项目概览页' },
   { id: 'workstation_info', label: '工位基本信息页' },
@@ -59,6 +62,9 @@ export function PPTTemplateManager() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedBgFile, setSelectedBgFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [parsedTemplate, setParsedTemplate] = useState<ParsedTemplate | null>(null);
+  const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -74,6 +80,8 @@ export function PPTTemplateManager() {
     });
     setSelectedFile(null);
     setSelectedBgFile(null);
+    setParsedTemplate(null);
+    setFieldMappings([]);
     setDialogOpen(true);
   };
 
@@ -89,6 +97,8 @@ export function PPTTemplateManager() {
     });
     setSelectedFile(null);
     setSelectedBgFile(null);
+    setParsedTemplate(null);
+    setFieldMappings([]);
     setDialogOpen(true);
   };
 
@@ -273,7 +283,7 @@ export function PPTTemplateManager() {
                 
                 <div className="flex flex-wrap gap-1">
                   {tpl.structure_meta?.sections?.slice(0, 4).map(sectionId => {
-                    const section = SECTION_OPTIONS.find(s => s.id === sectionId);
+                    const section = DEFAULT_SECTION_OPTIONS.find(s => s.id === sectionId);
                     return section ? (
                       <Badge key={sectionId} variant="outline" className="text-xs">
                         {section.label}
@@ -468,7 +478,7 @@ export function PPTTemplateManager() {
             <div className="space-y-2">
               <Label>页面结构（勾选需要生成的页面）</Label>
               <div className="grid grid-cols-2 gap-2 p-3 border rounded-md bg-muted/30">
-                {SECTION_OPTIONS.map(section => (
+                {DEFAULT_SECTION_OPTIONS.map(section => (
                   <div key={section.id} className="flex items-center gap-2">
                     <Checkbox
                       id={section.id}
@@ -523,7 +533,7 @@ export function PPTTemplateManager() {
                 <Label className="text-xs text-muted-foreground">生成页面顺序</Label>
                 <ol className="mt-2 space-y-1">
                   {previewTemplate.structure_meta?.sections?.map((sectionId, idx) => {
-                    const section = SECTION_OPTIONS.find(s => s.id === sectionId);
+                    const section = DEFAULT_SECTION_OPTIONS.find(s => s.id === sectionId);
                     return section ? (
                       <li key={sectionId} className="flex items-center gap-2 text-sm">
                         <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs">
