@@ -754,28 +754,26 @@ export async function generatePPTX(
     }
   }
 
-  // Define master slide for 16:9 layout (10" x 5.625")
+  // Define master slide dynamically based on template or use default
   type MasterObject = NonNullable<PptxGenJS.SlideMasterProps['objects']>[number];
   const footerY = SLIDE_LAYOUT.height - SLIDE_LAYOUT.margin.bottom;
-  const masterObjects: MasterObject[] = [
-    // Header bar
-    { rect: { x: 0, y: 0, w: '100%', h: 0.45, fill: { color: COLORS.primary } } },
-    // Footer bar
-    { rect: { x: 0, y: footerY, w: '100%', h: SLIDE_LAYOUT.margin.bottom, fill: { color: COLORS.dark } } },
-    // Company name in footer
-    { text: { text: isZh ? COMPANY_NAME_ZH : COMPANY_NAME_EN, options: { x: 0.3, y: footerY + 0.05, w: 4, h: 0.2, fontSize: 7, color: COLORS.white } } },
-    // Customer name in footer (right aligned)
-    { text: { text: project.customer, options: { x: SLIDE_LAYOUT.width - 2.5, y: footerY + 0.05, w: 2.2, h: 0.2, fontSize: 7, color: COLORS.white, align: 'right' } } },
-  ];
-
-  // Add template name indicator if template is selected
-  if (options.template?.name) {
-    masterObjects.push({ 
-      text: { 
-        text: `Template: ${options.template.name}`, 
-        options: { x: 3, y: footerY + 0.05, w: 4, h: 0.2, fontSize: 6, color: COLORS.white, align: 'center' } 
-      } 
-    });
+  
+  // Master objects can be customized based on parsed template structure
+  // For now, we use a minimal default that doesn't override template styles
+  const masterObjects: MasterObject[] = [];
+  
+  // Only add footer elements if no template background is set (template has its own design)
+  if (!templateBackground) {
+    masterObjects.push(
+      // Header bar - subtle
+      { rect: { x: 0, y: 0, w: '100%', h: 0.45, fill: { color: COLORS.primary } } },
+      // Footer bar
+      { rect: { x: 0, y: footerY, w: '100%', h: SLIDE_LAYOUT.margin.bottom, fill: { color: COLORS.dark } } },
+      // Company name in footer
+      { text: { text: isZh ? COMPANY_NAME_ZH : COMPANY_NAME_EN, options: { x: 0.3, y: footerY + 0.05, w: 4, h: 0.2, fontSize: 7, color: COLORS.white } } },
+      // Customer name in footer (right aligned)
+      { text: { text: project.customer, options: { x: SLIDE_LAYOUT.width - 2.5, y: footerY + 0.05, w: 2.2, h: 0.2, fontSize: 7, color: COLORS.white, align: 'right' } } },
+    );
   }
 
   pptx.defineSlideMaster({
