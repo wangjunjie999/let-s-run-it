@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { generatePPTX } from '@/services/pptxGenerator';
 import { generateFromUserTemplate, downloadGeneratedFile } from '@/services/templateBasedGenerator';
 import { extractTemplateStyles, convertStylesToGeneratorFormat } from '@/services/templateStyleExtractor';
+import { generateDOCX } from '@/services/docxGenerator';
 import { toast } from 'sonner';
 import { useCameras, useLenses, useLights, useControllers } from '@/hooks/useHardware';
 import { checkPPTReadiness } from '@/services/pptReadiness';
@@ -47,6 +48,7 @@ type OutputLanguage = 'zh' | 'en';
 type ImageQuality = 'standard' | 'high' | 'ultra';
 type GenerationMode = 'draft' | 'final';
 type GenerationMethod = 'template' | 'scratch'; // 基于用户上传的PPTX模板 or 从零生成（使用pptxgenjs）
+type OutputFormat = 'ppt' | 'word'; // PPT or Word document
 
 interface GenerationLog {
   type: 'info' | 'success' | 'warning' | 'error';
@@ -118,6 +120,7 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
   const generatedBlobRef = useRef<Blob | null>(null);
   const [checkPanelOpen, setCheckPanelOpen] = useState(true);
   const [generationMethod, setGenerationMethod] = useState<GenerationMethod>('template'); // 默认使用用户模板
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>('ppt'); // 输出格式
 
   // Get current project and workstations
   const project = projects.find(p => p.id === selectedProjectId);
@@ -424,7 +427,46 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
         })),
       };
 
-      // ==================== 根据生成方法选择不同的生成逻辑 ====================
+      // ==================== 根据输出格式选择不同的生成逻辑 ====================
+      
+      // Word文档生成（快速）
+      if (outputFormat === 'word') {
+        addLog('info', '生成Word文档（快速模式）...');
+        setProgress(10);
+        setCurrentStep('生成Word文档');
+
+        const blob = await generateDOCX(
+          projectData,
+          workstationData,
+          layoutData,
+          moduleData,
+          hardwareData,
+          { language },
+          (prog, step, log) => {
+            setProgress(prog);
+            setCurrentStep(step);
+            if (log) addLog('info', log);
+          }
+        );
+
+        generatedBlobRef.current = blob;
+
+        setGenerationResult({
+          pageCount: 1,
+          layoutImages: 0,
+          parameterTables: wsToProcess.length + modsToProcess.length,
+          hardwareList: 1,
+          fileUrl: '',
+        });
+
+        addLog('success', 'Word文档生成完成');
+        setStage('complete');
+        setIsGenerating(false);
+        toast.success('Word文档生成完成');
+        return;
+      }
+      
+      // PPT生成逻辑
       if (generationMethod === 'template' && selectedTemplate?.file_url) {
         // 基于用户上传的PPTX模板生成
         addLog('info', '使用用户上传的PPTX模板生成...');
@@ -569,13 +611,15 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
       return;
     }
     
-    // 否则使用blob下载（从零生成）
+    // 否则使用blob下载（从零生成 或 Word文档）
     if (!generatedBlobRef.current) return;
     
     const url = URL.createObjectURL(generatedBlobRef.current);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${project.code}_${project.name}_方案.pptx`;
+    // 根据输出格式决定文件扩展名
+    const ext = outputFormat === 'word' ? 'docx' : 'pptx';
+    a.download = `${project.code}_${project.name}_方案.${ext}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -608,128 +652,171 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
         {/* Config Stage */}
         {stage === 'config' && (
           <div className="flex flex-col gap-4 overflow-hidden flex-1">
-            {/* Generation Mode Selection */}
+            {/* Output Format Selection - 输出格式选择 */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium">生成模式</Label>
-              <RadioGroup value={mode} onValueChange={(v) => setMode(v as GenerationMode)} className="grid grid-cols-2 gap-2">
-                <Label className={cn(
-                  "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors",
-                  mode === 'draft' ? "border-primary bg-primary/5" : "hover:bg-muted"
-                )}>
-                  <RadioGroupItem value="draft" />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">草案版</div>
-                    <div className="text-xs text-muted-foreground">允许缺失，用占位提示</div>
-                  </div>
-                </Label>
-                <Label className={cn(
-                  "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors",
-                  mode === 'final' ? "border-primary bg-primary/5" : "hover:bg-muted"
-                )}>
-                  <RadioGroupItem value="final" />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">交付版</div>
-                    <div className="text-xs text-muted-foreground">必须完整，所有项齐全</div>
-                  </div>
-                </Label>
-              </RadioGroup>
-            </div>
-
-            {/* Template Selection */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium flex items-center gap-2">
-                <FileStack className="h-4 w-4" />
-                选择PPT母版
-              </Label>
-              <Select 
-                value={selectedTemplateId} 
-                onValueChange={setSelectedTemplateId}
-                disabled={templatesLoading}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={templatesLoading ? "加载中..." : "选择模板"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground text-center">
-                      暂无模板，请在管理中心添加
-                    </div>
-                  ) : (
-                    templates.filter(t => t.enabled !== false).map(template => (
-                      <SelectItem key={template.id} value={template.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{template.name}</span>
-                          {template.is_default && (
-                            <Badge variant="secondary" className="text-xs">默认</Badge>
-                          )}
-                          {template.scope && (
-                            <Badge variant="outline" className="text-xs">{template.scope}</Badge>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {selectedTemplateId && templates.find(t => t.id === selectedTemplateId)?.description && (
-                <p className="text-xs text-muted-foreground">
-                  {templates.find(t => t.id === selectedTemplateId)?.description}
-                </p>
-              )}
-            </div>
-
-            {/* Generation Method Selection - 生成方法选择 */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">生成方法</Label>
+              <Label className="text-sm font-medium">输出格式</Label>
               <RadioGroup 
-                value={generationMethod} 
-                onValueChange={(v) => setGenerationMethod(v as GenerationMethod)} 
+                value={outputFormat} 
+                onValueChange={(v) => setOutputFormat(v as OutputFormat)} 
                 className="grid grid-cols-2 gap-2"
               >
                 <Label className={cn(
-                  "flex items-center gap-2 p-3 border rounded-lg transition-colors",
-                  !templateHasFile ? "cursor-not-allowed opacity-50" : "cursor-pointer",
-                  generationMethod === 'template' && templateHasFile ? "border-primary bg-primary/5" : "hover:bg-muted"
+                  "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors",
+                  outputFormat === 'word' ? "border-primary bg-primary/5" : "hover:bg-muted"
                 )}>
-                  <RadioGroupItem value="template" disabled={!templateHasFile} />
+                  <RadioGroupItem value="word" />
                   <div className="flex-1">
                     <div className="text-sm font-medium flex items-center gap-2">
-                      基于模板
-                      {templateHasFile && (
-                        <Badge variant="secondary" className="text-xs">推荐</Badge>
-                      )}
+                      📄 Word文档
+                      <Badge variant="secondary" className="text-xs">快速</Badge>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {templateHasFile 
-                        ? '使用您上传的PPTX母版样式' 
-                        : '需要先上传PPTX文件'}
-                    </div>
+                    <div className="text-xs text-muted-foreground">纯文本+表格，秒级生成</div>
                   </div>
                 </Label>
                 <Label className={cn(
                   "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors",
-                  generationMethod === 'scratch' ? "border-primary bg-primary/5" : "hover:bg-muted"
+                  outputFormat === 'ppt' ? "border-primary bg-primary/5" : "hover:bg-muted"
                 )}>
-                  <RadioGroupItem value="scratch" />
+                  <RadioGroupItem value="ppt" />
                   <div className="flex-1">
-                    <div className="text-sm font-medium">从零生成</div>
-                    <div className="text-xs text-muted-foreground">使用内置标准样式</div>
+                    <div className="text-sm font-medium">📊 PPT文档</div>
+                    <div className="text-xs text-muted-foreground">含布局图+样式，较慢</div>
                   </div>
                 </Label>
               </RadioGroup>
-              {generationMethod === 'template' && templateHasFile && (
-                <p className="text-xs text-primary flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  将使用 "{selectedTemplate?.name}" 的母版样式
-                </p>
-              )}
-              {generationMethod === 'template' && !templateHasFile && selectedTemplateId && (
-                <p className="text-xs text-warning flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  该模板未上传PPTX文件，请在管理中心上传或切换为"从零生成"
-                </p>
-              )}
             </div>
+
+            {/* PPT-specific options - only show when PPT format selected */}
+            {outputFormat === 'ppt' && (
+              <>
+                {/* Generation Mode Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">生成模式</Label>
+                  <RadioGroup value={mode} onValueChange={(v) => setMode(v as GenerationMode)} className="grid grid-cols-2 gap-2">
+                    <Label className={cn(
+                      "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors",
+                      mode === 'draft' ? "border-primary bg-primary/5" : "hover:bg-muted"
+                    )}>
+                      <RadioGroupItem value="draft" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">草案版</div>
+                        <div className="text-xs text-muted-foreground">允许缺失，用占位提示</div>
+                      </div>
+                    </Label>
+                    <Label className={cn(
+                      "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors",
+                      mode === 'final' ? "border-primary bg-primary/5" : "hover:bg-muted"
+                    )}>
+                      <RadioGroupItem value="final" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">交付版</div>
+                        <div className="text-xs text-muted-foreground">必须完整，所有项齐全</div>
+                      </div>
+                    </Label>
+                  </RadioGroup>
+                </div>
+              </>
+            )}
+
+            {/* Template Selection - only for PPT */}
+            {outputFormat === 'ppt' && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <FileStack className="h-4 w-4" />
+                  选择PPT母版
+                </Label>
+                <Select 
+                  value={selectedTemplateId} 
+                  onValueChange={setSelectedTemplateId}
+                  disabled={templatesLoading}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={templatesLoading ? "加载中..." : "选择模板"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        暂无模板，请在管理中心添加
+                      </div>
+                    ) : (
+                      templates.filter(t => t.enabled !== false).map(template => (
+                        <SelectItem key={template.id} value={template.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{template.name}</span>
+                            {template.is_default && (
+                              <Badge variant="secondary" className="text-xs">默认</Badge>
+                            )}
+                            {template.scope && (
+                              <Badge variant="outline" className="text-xs">{template.scope}</Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {selectedTemplateId && templates.find(t => t.id === selectedTemplateId)?.description && (
+                  <p className="text-xs text-muted-foreground">
+                    {templates.find(t => t.id === selectedTemplateId)?.description}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Generation Method Selection - only for PPT */}
+            {outputFormat === 'ppt' && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">生成方法</Label>
+                <RadioGroup 
+                  value={generationMethod} 
+                  onValueChange={(v) => setGenerationMethod(v as GenerationMethod)} 
+                  className="grid grid-cols-2 gap-2"
+                >
+                  <Label className={cn(
+                    "flex items-center gap-2 p-3 border rounded-lg transition-colors",
+                    !templateHasFile ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+                    generationMethod === 'template' && templateHasFile ? "border-primary bg-primary/5" : "hover:bg-muted"
+                  )}>
+                    <RadioGroupItem value="template" disabled={!templateHasFile} />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium flex items-center gap-2">
+                        基于模板
+                        {templateHasFile && (
+                          <Badge variant="secondary" className="text-xs">推荐</Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {templateHasFile 
+                          ? '使用您上传的PPTX母版样式' 
+                          : '需要先上传PPTX文件'}
+                      </div>
+                    </div>
+                  </Label>
+                  <Label className={cn(
+                    "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors",
+                    generationMethod === 'scratch' ? "border-primary bg-primary/5" : "hover:bg-muted"
+                  )}>
+                    <RadioGroupItem value="scratch" />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">从零生成</div>
+                      <div className="text-xs text-muted-foreground">使用内置标准样式</div>
+                    </div>
+                  </Label>
+                </RadioGroup>
+                {generationMethod === 'template' && templateHasFile && (
+                  <p className="text-xs text-primary flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    将使用 "{selectedTemplate?.name}" 的母版样式
+                  </p>
+                )}
+                {generationMethod === 'template' && !templateHasFile && selectedTemplateId && (
+                  <p className="text-xs text-warning flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    该模板未上传PPTX文件，请在管理中心上传或切换为"从零生成"
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Delivery Check Panel */}
             {(missing.length > 0 || warnings.length > 0) && (
@@ -1023,7 +1110,9 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
             </div>
             
             <div className="text-center">
-              <h3 className="text-lg font-semibold">PPT生成完成</h3>
+              <h3 className="text-lg font-semibold">
+                {outputFormat === 'word' ? 'Word文档生成完成' : 'PPT生成完成'}
+              </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 项目: {project?.name}
               </p>
@@ -1060,7 +1149,7 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
             <div className="flex gap-2">
               <Button className="gap-2" onClick={handleDownload}>
                 <Download className="h-4 w-4" />
-                下载PPTX文件
+                {outputFormat === 'word' ? '下载Word文件' : '下载PPTX文件'}
               </Button>
             </div>
             
