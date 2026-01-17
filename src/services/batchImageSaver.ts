@@ -175,12 +175,27 @@ export async function generateImageFromElement(
     });
   });
   
-  const dataUrl = await toPng(element, {
-    quality: preset.quality,
-    pixelRatio: preset.pixelRatio,
-    backgroundColor,
-    skipFonts: true,
-  });
+  // Use try-catch to handle memory issues with large images
+  let dataUrl: string;
+  try {
+    dataUrl = await toPng(element, {
+      quality: preset.quality,
+      pixelRatio: Math.min(preset.pixelRatio, 2), // Limit pixel ratio to prevent memory issues
+      backgroundColor,
+      skipFonts: true,
+      cacheBust: true, // Prevent memory caching issues
+    });
+  } catch (error) {
+    // Retry with lower quality if memory error
+    console.warn('First image capture attempt failed, retrying with lower quality:', error);
+    dataUrl = await toPng(element, {
+      quality: 0.6,
+      pixelRatio: 1,
+      backgroundColor,
+      skipFonts: true,
+      cacheBust: true,
+    });
+  }
   
   const originalBlob = dataUrlToBlob(dataUrl);
   

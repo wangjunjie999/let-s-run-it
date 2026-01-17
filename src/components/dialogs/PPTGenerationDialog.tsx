@@ -30,6 +30,7 @@ import { generatePPTX } from '@/services/pptxGenerator';
 import { generateFromUserTemplate, downloadGeneratedFile } from '@/services/templateBasedGenerator';
 import { extractTemplateStyles, convertStylesToGeneratorFormat } from '@/services/templateStyleExtractor';
 import { generateDOCX } from '@/services/docxGenerator';
+import { generatePDF } from '@/services/pdfGenerator';
 import { toast } from 'sonner';
 import { useCameras, useLenses, useLights, useControllers } from '@/hooks/useHardware';
 import { checkPPTReadiness } from '@/services/pptReadiness';
@@ -48,7 +49,7 @@ type OutputLanguage = 'zh' | 'en';
 type ImageQuality = 'standard' | 'high' | 'ultra';
 type GenerationMode = 'draft' | 'final';
 type GenerationMethod = 'template' | 'scratch'; // 基于用户上传的PPTX模板 or 从零生成（使用pptxgenjs）
-type OutputFormat = 'ppt' | 'word'; // PPT or Word document
+type OutputFormat = 'ppt' | 'word' | 'pdf'; // PPT, Word, or PDF document
 
 interface GenerationLog {
   type: 'info' | 'success' | 'warning' | 'error';
@@ -509,6 +510,69 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
         toast.success('Word文档生成完成');
         return;
       }
+
+      // PDF文档生成（快速，含图片）
+      if (outputFormat === 'pdf') {
+        addLog('info', '生成PDF文档...');
+        setProgress(10);
+        setCurrentStep('生成PDF文档');
+
+        // Add layout view image URLs to layout data
+        const layoutDataWithImages = layoutsToProcess.map(l => {
+          const layoutItem = l as any;
+          return {
+            workstation_id: layoutItem.workstation_id,
+            conveyor_type: layoutItem.conveyor_type,
+            camera_count: layoutItem.camera_count,
+            lens_count: layoutItem.lens_count ?? 1,
+            light_count: layoutItem.light_count ?? 1,
+            camera_mounts: layoutItem.camera_mounts,
+            mechanisms: layoutItem.mechanisms,
+            selected_cameras: layoutItem.selected_cameras || null,
+            selected_lenses: layoutItem.selected_lenses || null,
+            selected_lights: layoutItem.selected_lights || null,
+            selected_controller: layoutItem.selected_controller || null,
+            front_view_image_url: layoutItem.front_view_image_url || null,
+            side_view_image_url: layoutItem.side_view_image_url || null,
+            top_view_image_url: layoutItem.top_view_image_url || null,
+          };
+        });
+
+        const blob = await generatePDF(
+          projectData,
+          workstationData,
+          layoutDataWithImages,
+          moduleData,
+          hardwareData,
+          { language, includeImages: true },
+          (prog, step, log) => {
+            setProgress(prog);
+            setCurrentStep(step);
+            if (log) addLog('info', log);
+          },
+          productAssetData,
+          annotationData
+        );
+
+        generatedBlobRef.current = blob;
+
+        // Count images included
+        const imageCount = productAssetData.reduce((acc, a) => acc + (a.preview_images?.length || 0), 0) + annotationData.length;
+
+        setGenerationResult({
+          pageCount: Math.ceil((wsToProcess.length + 3) * 1.5), // Estimate
+          layoutImages: imageCount,
+          parameterTables: wsToProcess.length + modsToProcess.length,
+          hardwareList: 1,
+          fileUrl: '',
+        });
+
+        addLog('success', `PDF文档生成完成，包含 ${imageCount} 张图片`);
+        setStage('complete');
+        setIsGenerating(false);
+        toast.success('PDF文档生成完成');
+        return;
+      }
       
       // PPT生成逻辑
       if (generationMethod === 'template' && selectedTemplate?.file_url) {
@@ -655,14 +719,14 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
       return;
     }
     
-    // 否则使用blob下载（从零生成 或 Word文档）
+    // 否则使用blob下载（从零生成 或 Word/PDF文档）
     if (!generatedBlobRef.current) return;
     
     const url = URL.createObjectURL(generatedBlobRef.current);
     const a = document.createElement('a');
     a.href = url;
     // 根据输出格式决定文件扩展名
-    const ext = outputFormat === 'word' ? 'docx' : 'pptx';
+    const ext = outputFormat === 'word' ? 'docx' : outputFormat === 'pdf' ? 'pdf' : 'pptx';
     a.download = `${project.code}_${project.name}_方案.${ext}`;
     document.body.appendChild(a);
     a.click();
@@ -702,7 +766,7 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
               <RadioGroup 
                 value={outputFormat} 
                 onValueChange={(v) => setOutputFormat(v as OutputFormat)} 
-                className="grid grid-cols-2 gap-2"
+                className="grid grid-cols-3 gap-2"
               >
                 <Label className={cn(
                   "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors",
@@ -711,10 +775,23 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
                   <RadioGroupItem value="word" />
                   <div className="flex-1">
                     <div className="text-sm font-medium flex items-center gap-2">
-                      📄 Word文档
+                      📄 Word
                       <Badge variant="secondary" className="text-xs">快速</Badge>
                     </div>
-                    <div className="text-xs text-muted-foreground">纯文本+表格，秒级生成</div>
+                    <div className="text-xs text-muted-foreground">纯文本+表格</div>
+                  </div>
+                </Label>
+                <Label className={cn(
+                  "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors",
+                  outputFormat === 'pdf' ? "border-primary bg-primary/5" : "hover:bg-muted"
+                )}>
+                  <RadioGroupItem value="pdf" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium flex items-center gap-2">
+                      📕 PDF
+                      <Badge variant="outline" className="text-xs">推荐</Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground">含图片，可打印</div>
                   </div>
                 </Label>
                 <Label className={cn(
@@ -723,8 +800,8 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
                 )}>
                   <RadioGroupItem value="ppt" />
                   <div className="flex-1">
-                    <div className="text-sm font-medium">📊 PPT文档</div>
-                    <div className="text-xs text-muted-foreground">含布局图+样式，较慢</div>
+                    <div className="text-sm font-medium">📊 PPT</div>
+                    <div className="text-xs text-muted-foreground">可编辑演示</div>
                   </div>
                 </Label>
               </RadioGroup>
@@ -1155,7 +1232,7 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
             
             <div className="text-center">
               <h3 className="text-lg font-semibold">
-                {outputFormat === 'word' ? 'Word文档生成完成' : 'PPT生成完成'}
+                {outputFormat === 'word' ? 'Word文档生成完成' : outputFormat === 'pdf' ? 'PDF文档生成完成' : 'PPT生成完成'}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 项目: {project?.name}
@@ -1193,7 +1270,7 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
             <div className="flex gap-2">
               <Button className="gap-2" onClick={handleDownload}>
                 <Download className="h-4 w-4" />
-                {outputFormat === 'word' ? '下载Word文件' : '下载PPTX文件'}
+                {outputFormat === 'word' ? '下载Word文件' : outputFormat === 'pdf' ? '下载PDF文件' : '下载PPTX文件'}
               </Button>
             </div>
             
