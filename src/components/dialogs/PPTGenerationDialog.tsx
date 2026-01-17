@@ -45,7 +45,7 @@ type GenerationScope = 'full' | 'workstations' | 'modules';
 type OutputLanguage = 'zh' | 'en';
 type ImageQuality = 'standard' | 'high' | 'ultra';
 type GenerationMode = 'draft' | 'final';
-type GenerationMethod = 'template' | 'scratch'; // 基于模板 or 从零生成
+type GenerationMethod = 'template' | 'scratch'; // 基于用户上传的PPTX模板 or 从零生成（使用pptxgenjs）
 
 interface GenerationLog {
   type: 'info' | 'success' | 'warning' | 'error';
@@ -115,7 +115,7 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
   });
   const generatedBlobRef = useRef<Blob | null>(null);
   const [checkPanelOpen, setCheckPanelOpen] = useState(true);
-  const [generationMethod, setGenerationMethod] = useState<GenerationMethod>('scratch');
+  const [generationMethod, setGenerationMethod] = useState<GenerationMethod>('template'); // 默认使用用户模板
 
   // Get current project and workstations
   const project = projects.find(p => p.id === selectedProjectId);
@@ -273,6 +273,10 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
     setLogs(prev => [...prev, { type, message, timestamp: new Date() }]);
   };
 
+  // 检查选中的模板是否有PPTX文件
+  const selectedTemplate = templates.find(t => t.id === selectedTemplateId) || null;
+  const templateHasFile = selectedTemplate?.file_url ? true : false;
+
   const handleGenerate = async () => {
     if (!project) return;
     
@@ -324,6 +328,12 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
           cycle_time: wsData.cycle_time,
           product_dimensions: wsData.product_dimensions as { length: number; width: number; height: number } | null,
           enclosed: wsData.enclosed,
+          process_stage: wsData.process_stage,
+          observation_target: wsData.observation_target,
+          motion_description: wsData.motion_description,
+          risk_notes: wsData.risk_notes,
+          shot_count: wsData.shot_count,
+          acceptance_criteria: wsData.acceptance_criteria,
         };
       });
 
@@ -412,52 +422,96 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
         })),
       };
 
-      // Get selected template
-      const selectedTemplate = templates.find(t => t.id === selectedTemplateId) || null;
+      // ==================== 根据生成方法选择不同的生成逻辑 ====================
+      if (generationMethod === 'template' && selectedTemplate?.file_url) {
+        // 基于用户上传的PPTX模板生成
+        addLog('info', '使用用户上传的PPTX模板生成...');
+        setProgress(10);
+        setCurrentStep('调用模板生成服务');
 
-      // Generate PPTX with annotations, productAssets, and template
-      const blob = await generatePPTX(
-        projectData,
-        workstationData,
-        layoutData,
-        moduleData,
-        { 
-          language, 
-          quality, 
-          mode,
-          template: selectedTemplate ? {
-            id: selectedTemplate.id,
-            name: selectedTemplate.name,
-            file_url: selectedTemplate.file_url,
-            background_image_url: selectedTemplate.background_image_url,
-          } : null,
-        },
-        (prog, step, log) => {
-          setProgress(prog);
-          setCurrentStep(step);
-          addLog('info', log);
-        },
-        hardwareData,
-        readinessResult,
-        annotations,
-        productAssets
-      );
+        const result = await generateFromUserTemplate({
+          templateId: selectedTemplateId,
+          data: {
+            project: projectData,
+            workstations: workstationData,
+            modules: moduleData,
+            hardware: hardwareData,
+            language,
+          },
+          outputFileName: `${projectData.code}_${projectData.name}_方案.pptx`,
+          onProgress: (msg) => {
+            addLog('info', msg);
+          },
+        });
 
-      generatedBlobRef.current = blob;
+        if (result.success && result.fileUrl) {
+          addLog('success', `成功生成PPT: ${result.slideCount} 页`);
+          
+          // 设置结果并允许下载
+          setGenerationResult({
+            pageCount: result.slideCount || 0,
+            layoutImages: 0,
+            parameterTables: 0,
+            hardwareList: 0,
+            fileUrl: result.fileUrl,
+          });
 
-      // Set result
-      setGenerationResult({
-        pageCount: 2 + wsToProcess.length + modsToProcess.length + 2,
-        layoutImages: wsToProcess.length * 3,
-        parameterTables: wsToProcess.length + modsToProcess.length,
-        hardwareList: 1,
-        fileUrl: '',
-      });
+          // 下载文件
+          generatedBlobRef.current = null; // 模板方法不使用blob
+          setProgress(100);
+          setStage('complete');
+          setIsGenerating(false);
+          toast.success('PPT生成完成');
+        } else {
+          throw new Error(result.error || '模板生成失败');
+        }
+      } else {
+        // 从零生成（使用pptxgenjs）
+        addLog('info', '使用内置生成器从零创建PPT...');
 
-      addLog('success', `成功生成PPT文件`);
-      setStage('complete');
-      setIsGenerating(false);
-      toast.success('PPT生成完成');
+        const blob = await generatePPTX(
+          projectData,
+          workstationData,
+          layoutData,
+          moduleData,
+          { 
+            language, 
+            quality, 
+            mode,
+            template: selectedTemplate ? {
+              id: selectedTemplate.id,
+              name: selectedTemplate.name,
+              file_url: selectedTemplate.file_url,
+              background_image_url: selectedTemplate.background_image_url,
+            } : null,
+          },
+          (prog, step, log) => {
+            setProgress(prog);
+            setCurrentStep(step);
+            addLog('info', log);
+          },
+          hardwareData,
+          readinessResult,
+          annotations,
+          productAssets
+        );
+
+        generatedBlobRef.current = blob;
+
+        // Set result
+        setGenerationResult({
+          pageCount: 2 + wsToProcess.length + modsToProcess.length + 2,
+          layoutImages: wsToProcess.length * 3,
+          parameterTables: wsToProcess.length + modsToProcess.length,
+          hardwareList: 1,
+          fileUrl: '',
+        });
+
+        addLog('success', `成功生成PPT文件`);
+        setStage('complete');
+        setIsGenerating(false);
+        toast.success('PPT生成完成');
+      }
     } catch (error) {
       console.error('PPT generation failed:', error);
       addLog('error', `生成失败: ${error}`);
@@ -467,8 +521,26 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
     }
   };
 
-  const handleDownload = () => {
-    if (!generatedBlobRef.current || !project) return;
+  const handleDownload = async () => {
+    if (!project) return;
+    
+    // 如果有fileUrl（模板生成），从URL下载
+    if (generationResult.fileUrl) {
+      try {
+        await downloadGeneratedFile(
+          generationResult.fileUrl, 
+          `${project.code}_${project.name}_方案.pptx`
+        );
+        toast.success('文件下载成功');
+      } catch (error) {
+        console.error('Download error:', error);
+        toast.error('下载失败');
+      }
+      return;
+    }
+    
+    // 否则使用blob下载（从零生成）
+    if (!generatedBlobRef.current) return;
     
     const url = URL.createObjectURL(generatedBlobRef.current);
     const a = document.createElement('a');
@@ -572,6 +644,59 @@ export function PPTGenerationDialog({ open, onOpenChange }: { open: boolean; onO
               {selectedTemplateId && templates.find(t => t.id === selectedTemplateId)?.description && (
                 <p className="text-xs text-muted-foreground">
                   {templates.find(t => t.id === selectedTemplateId)?.description}
+                </p>
+              )}
+            </div>
+
+            {/* Generation Method Selection - 生成方法选择 */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">生成方法</Label>
+              <RadioGroup 
+                value={generationMethod} 
+                onValueChange={(v) => setGenerationMethod(v as GenerationMethod)} 
+                className="grid grid-cols-2 gap-2"
+              >
+                <Label className={cn(
+                  "flex items-center gap-2 p-3 border rounded-lg transition-colors",
+                  !templateHasFile ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+                  generationMethod === 'template' && templateHasFile ? "border-primary bg-primary/5" : "hover:bg-muted"
+                )}>
+                  <RadioGroupItem value="template" disabled={!templateHasFile} />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium flex items-center gap-2">
+                      基于模板
+                      {templateHasFile && (
+                        <Badge variant="secondary" className="text-xs">推荐</Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {templateHasFile 
+                        ? '使用您上传的PPTX母版样式' 
+                        : '需要先上传PPTX文件'}
+                    </div>
+                  </div>
+                </Label>
+                <Label className={cn(
+                  "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors",
+                  generationMethod === 'scratch' ? "border-primary bg-primary/5" : "hover:bg-muted"
+                )}>
+                  <RadioGroupItem value="scratch" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">从零生成</div>
+                    <div className="text-xs text-muted-foreground">使用内置标准样式</div>
+                  </div>
+                </Label>
+              </RadioGroup>
+              {generationMethod === 'template' && templateHasFile && (
+                <p className="text-xs text-primary flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  将使用 "{selectedTemplate?.name}" 的母版样式
+                </p>
+              )}
+              {generationMethod === 'template' && !templateHasFile && selectedTemplateId && (
+                <p className="text-xs text-warning flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  该模板未上传PPTX文件，请在管理中心上传或切换为"从零生成"
                 </p>
               )}
             </div>
